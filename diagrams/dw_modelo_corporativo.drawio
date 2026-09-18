@@ -1,0 +1,298 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.0.15 Chrome/132.0.6834.196 Electron/34.2.0 Safari/537.36" version="26.0.15">
+  <diagram name="DW Corporativo - Modelo Inmon (datatran)" id="dw-corporativo">
+    <mxGraphModel dx="4340" dy="2399" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tempos" value="tempos" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="800" y="-290" width="260" height="246" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c0" value="&lt;b&gt;PK id_tempo&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="30" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c1" value="data : DATE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="54" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c2" value="dia : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="78" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c3" value="mes : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="102" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c4" value="nome_mes : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="126" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c5" value="trimestre : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="150" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c6" value="ano : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="174" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c7" value="dia_semana : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="198" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tempos_c8" value="flag_fim_semana : BOOLEAN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tempos" vertex="1">
+          <mxGeometry y="222" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ufs" value="ufs" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="-220" y="60" width="240" height="126" as="geometry" />
+        </mxCell>
+        <mxCell id="ufs_c0" value="&lt;b&gt;PK id_uf&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ufs" vertex="1">
+          <mxGeometry y="30" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ufs_c1" value="sigla : CHAR(2)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ufs" vertex="1">
+          <mxGeometry y="54" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ufs_c2" value="nome : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ufs" vertex="1">
+          <mxGeometry y="78" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ufs_c3" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ufs" vertex="1">
+          <mxGeometry y="102" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="municipios" value="municipios" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="100" y="60" width="240" height="126" as="geometry" />
+        </mxCell>
+        <mxCell id="municipios_c0" value="&lt;b&gt;PK id_municipio&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="municipios" vertex="1">
+          <mxGeometry y="30" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="municipios_c1" value="nome : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="municipios" vertex="1">
+          <mxGeometry y="54" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="municipios_c2" value="&lt;b&gt;FK id_uf&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="municipios" vertex="1">
+          <mxGeometry y="78" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="municipios_c3" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="municipios" vertex="1">
+          <mxGeometry y="102" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="rodovias" value="rodovias" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="-310" y="310" width="240" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="rodovias_c0" value="&lt;b&gt;PK id_rodovia&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="rodovias" vertex="1">
+          <mxGeometry y="30" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="rodovias_c1" value="numero : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="rodovias" vertex="1">
+          <mxGeometry y="54" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="rodovias_c2" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="rodovias" vertex="1">
+          <mxGeometry y="78" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="localizacoes" value="localizacoes" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="80" y="460" width="240" height="126" as="geometry" />
+        </mxCell>
+        <mxCell id="localizacoes_c0" value="&lt;b&gt;PK id_localizacao&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="localizacoes" vertex="1">
+          <mxGeometry y="30" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="localizacoes_c1" value="&lt;b&gt;FK id_rodovia&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="localizacoes" vertex="1">
+          <mxGeometry y="54" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="localizacoes_c2" value="km : NUMERIC(6,1)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="localizacoes" vertex="1">
+          <mxGeometry y="78" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="localizacoes_c3" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="localizacoes" vertex="1">
+          <mxGeometry y="102" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="locais_acidente" value="locais_acidente" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="400" y="220" width="260" height="126" as="geometry" />
+        </mxCell>
+        <mxCell id="locais_acidente_c0" value="&lt;b&gt;PK id_local&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="locais_acidente" vertex="1">
+          <mxGeometry y="30" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="locais_acidente_c1" value="&lt;b&gt;FK id_municipio&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="locais_acidente" vertex="1">
+          <mxGeometry y="54" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="locais_acidente_c2" value="&lt;b&gt;FK id_localizacao&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="locais_acidente" vertex="1">
+          <mxGeometry y="78" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="locais_acidente_c3" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="locais_acidente" vertex="1">
+          <mxGeometry y="102" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tipos_classificacao" value="tipos_classificacao" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="2060" y="30" width="280" height="126" as="geometry" />
+        </mxCell>
+        <mxCell id="tipos_classificacao_c0" value="&lt;b&gt;PK tipo_classificacao&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tipos_classificacao" vertex="1">
+          <mxGeometry y="30" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tipos_classificacao_c1" value="descricao : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tipos_classificacao" vertex="1">
+          <mxGeometry y="54" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tipos_classificacao_c2" value="obrigatorio : BOOLEAN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tipos_classificacao" vertex="1">
+          <mxGeometry y="78" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tipos_classificacao_c3" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="tipos_classificacao" vertex="1">
+          <mxGeometry y="102" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="classificacoes_validas" value="classificacoes_validas" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="2000" y="282" width="280" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="classificacoes_validas_c0" value="&lt;b&gt;PK,FK tipo_classificacao&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="classificacoes_validas" vertex="1">
+          <mxGeometry y="30" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="classificacoes_validas_c1" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="classificacoes_validas" vertex="1">
+          <mxGeometry y="54" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="classificacoes_validas_c2" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="classificacoes_validas" vertex="1">
+          <mxGeometry y="78" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="categorias_vitima" value="categorias_vitima" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="780" y="450" width="260" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="categorias_vitima_c0" value="&lt;b&gt;PK categoria&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="categorias_vitima" vertex="1">
+          <mxGeometry y="30" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="categorias_vitima_c1" value="descricao : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="categorias_vitima" vertex="1">
+          <mxGeometry y="54" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="categorias_vitima_c2" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="categorias_vitima" vertex="1">
+          <mxGeometry y="78" width="260" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias" value="ocorrencias (fatos)" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="760" y="60" width="300" height="222" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c0" value="&lt;b&gt;PK id_ocorrencia&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="30" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c1" value="sistema_origem : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="54" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c2" value="id_ocorrencia_origem : VARCHAR(50)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="78" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c3" value="&lt;b&gt;FK id_tempo&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="102" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c4" value="horario : TIME" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="126" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c5" value="&lt;b&gt;FK id_local&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="150" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c6" value="veiculos : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="174" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencias_c7" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencias" vertex="1">
+          <mxGeometry y="198" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_vitima" value="ocorrencia_vitima" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1560" y="420" width="300" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_vitima_c0" value="&lt;b&gt;PK,FK id_ocorrencia&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_vitima" vertex="1">
+          <mxGeometry y="30" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_vitima_c1" value="&lt;b&gt;PK,FK categoria&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_vitima" vertex="1">
+          <mxGeometry y="54" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_vitima_c2" value="quantidade : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_vitima" vertex="1">
+          <mxGeometry y="78" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_classificacao" value="ocorrencia_classificacao" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1410" y="72" width="300" height="102" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_classificacao_c0" value="&lt;b&gt;PK,FK id_ocorrencia&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_classificacao" vertex="1">
+          <mxGeometry y="30" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_classificacao_c1" value="&lt;b&gt;PK tipo_classificacao&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_classificacao" vertex="1">
+          <mxGeometry y="54" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="ocorrencia_classificacao_c2" value="&lt;b&gt;FK valor&lt;/b&gt; : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="ocorrencia_classificacao" vertex="1">
+          <mxGeometry y="78" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos" value="veiculos_envolvidos" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="900" width="300" height="198" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c0" value="&lt;b&gt;PK id_veiculo&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="30" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c1" value="&lt;b&gt;FK id_ocorrencia&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="54" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c2" value="tipo_veiculo : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="78" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c3" value="placa : VARCHAR(10)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="102" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c4" value="marca_modelo : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="126" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c5" value="ano_fabricacao : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="150" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="veiculos_envolvidos_c6" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="veiculos_envolvidos" vertex="1">
+          <mxGeometry y="174" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas" value="pessoas_envolvidas" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1360" y="900" width="300" height="222" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c0" value="&lt;b&gt;PK id_pessoa&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="30" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c1" value="&lt;b&gt;FK id_ocorrencia&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="54" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c2" value="&lt;b&gt;FK id_veiculo&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="78" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c3" value="&lt;b&gt;FK categoria&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="102" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c4" value="tipo_envolvimento : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="126" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c5" value="idade : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="150" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c6" value="sexo : CHAR(1)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="174" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pessoas_envolvidas_c7" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="pessoas_envolvidas" vertex="1">
+          <mxGeometry y="198" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_0" value="id_tempo" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="ocorrencias_c1" target="tempos" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_1" value="id_local" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="ocorrencias_c5" target="locais_acidente" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_2" value="id_municipio" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="locais_acidente_c1" target="municipios" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_3" value="id_localizacao" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="locais_acidente_c2" target="localizacoes" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_4" value="id_uf" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="municipios_c2" target="ufs" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_5" value="id_rodovia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="localizacoes_c1" target="rodovias" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_6" value="id_ocorrencia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="ocorrencia_vitima_c0" target="ocorrencias_c4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_7" value="categoria" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="ocorrencia_vitima_c1" target="categorias_vitima" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_8" value="id_ocorrencia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="ocorrencia_classificacao_c0" target="ocorrencias" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_9" value="(tipo_classificacao, valor)" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="ocorrencia_classificacao_c2" target="classificacoes_validas" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_10" value="tipo_classificacao" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="classificacoes_validas_c0" target="tipos_classificacao" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_11" value="id_ocorrencia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="veiculos_envolvidos_c1" target="ocorrencias" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_12" value="id_ocorrencia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" parent="1" source="pessoas_envolvidas_c1" target="ocorrencias_c6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_13" value="id_veiculo" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="pessoas_envolvidas_c2" target="veiculos_envolvidos" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_14" value="categoria" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="pessoas_envolvidas_c3" target="categorias_vitima_c1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,82 @@
+services:
+
+  # ============================================================
+  # ETAPA 1 — Banco transacional (OLTP) + Data Warehouse
+  # ============================================================
+
+  # `datatran` (OLTP) e `dw` (corporativo + data_marting + metadados) vivem
+  # no mesmo servidor Postgres, em bancos separados - `dw_postgres.sql`
+  # começa com `CREATE DATABASE dw; \c dw;`, então a ordem dos scripts
+  # importa (numeração abaixo).
+  postgres:
+    image: postgres:16
+    container_name: datatran_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: datatran
+    ports:
+      - "5432:5432"
+    volumes:
+      - "./db/01_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"
+      - "./db/02_data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro"
+      - "./dw/dw_postgres.sql:/docker-entrypoint-initdb.d/03-dw-schema.sql:ro"
+      - "./dw/metadados_postgres.sql:/docker-entrypoint-initdb.d/04-metadados.sql:ro"
+      - "./dw/staging_postgres.sql:/docker-entrypoint-initdb.d/05-staging.sql:ro"
+      - "./data_marting/dw_postgres.sql:/docker-entrypoint-initdb.d/06-data-marting.sql:ro"
+
+  # ============================================================
+  # ETAPA 2 — Orquestração de ETL (Airflow)
+  # ============================================================
+
+  # Instância standalone (webserver + scheduler em um único processo,
+  # metadados do próprio Airflow em SQLite). Roda as DAGs carga_inicial_dw e
+  # carga_incremental_dw, que leem do `datatran` e populam `dw`.
+  airflow:
+    image: apache/airflow:latest
+    container_name: dw_airflow
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "airflow:admin"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: "/opt/airflow/simple_auth_manager_passwords.json"
+      _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary"
+      # carregar_corporativo_ocorrencias processa ~127 mil linhas num loop
+      # Python síncrono só com round-trips de banco, sem ponto natural pra
+      # heartbeat - o default de 300s (5 min) é curto demais pra essa carga.
+      # Em máquina ociosa leva 5-8 min; sob memória apertada já vimos passar
+      # de 20 min. 1h dá margem de sobra sem mascarar uma trava de verdade
+      # (task genuinamente travada nunca reporta success de qualquer jeito).
+      AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT: "3600"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./airflow/dags:/opt/airflow/dags"
+      - "./airflow/simple_auth_manager_passwords.json:/opt/airflow/simple_auth_manager_passwords.json"
+    command: standalone
+
+  # ============================================================
+  # ETAPA 3 — BI (Metabase), painéis sobre o data mart em estrela
+  # ============================================================
+
+  # Metadados do próprio Metabase ficam em H2 embarcado (arquivo dentro do
+  # container, não precisa de outro Postgres). Conecta no banco `dw` (schema
+  # `public`, o data mart) como fonte de dados de BI.
+  metabase:
+    image: metabase/metabase:latest
+    container_name: dw_metabase
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+  # Provisiona o Metabase via API (usuário admin, conexão com o `dw`, mapa
+  # customizado dos estados do Brasil e o dashboard "Painel PRF") assim que o
+  # serviço acima sobe. Roda uma vez e sai (não é um serviço de vida longa).
+  metabase-setup:
+    build: ./metabase
+    container_name: dw_metabase_setup
+    depends_on:
+      - metabase
+      - postgres
