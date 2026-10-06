@@ -2,10 +2,23 @@
 
 -- Seed do catálogo de metadados para este projeto (execução manual, ver
 -- README: não roda em docker-entrypoint-initdb.d de propósito, igual ao
--- projeto de referência). Documenta 14 tabelas / 46 campos transacionais
--- (banco `datatran`, ../db/01_schema.sql), 14 tabelas / 67 campos do
--- corporativo (Inmon) e 4 tabelas / 44 campos do data mart em estrela, com a
+-- projeto de referência). Documenta 12 tabelas / 33 campos transacionais
+-- (banco `datatran`, ../db/01_schema.sql), 12 tabelas / 52 campos do
+-- corporativo (Inmon) e 4 tabelas / 43 campos do data mart em estrela, com a
 -- linhagem completa entre eles.
+--
+-- PENDENTE: tracado_via_valido/acidente_tracado_via (OLTP),
+-- corporativo.tracados_via_validos/ocorrencia_tracado_via e
+-- fato_acidente_tracado_via (data mart) - introduzidas depois deste seed
+-- (ver nota "DESCOBERTA" em ../db/01_schema.sql) - ainda não catalogadas
+-- aqui. O campo `tracado_via` de dim_classificacao_acidente foi removido
+-- deste seed (deixou de existir na tabela).
+--
+-- `veiculo_envolvido`/`pessoa_envolvida` (OLTP) e seus espelhos
+-- `corporativo.veiculos_envolvidos`/`pessoas_envolvidas` foram REMOVIDOS do
+-- schema (e por isso daqui) - eram "extensão conceitual", permanentemente
+-- vazios, sem nenhum código de ETL escrevendo neles. Documentar metadado
+-- pra tabela que não existe mais não faz sentido.
 
 INSERT INTO metadados.sistema_transacional (id_sistema, nome_sistema, descricao, plataforma) VALUES
 (1, 'DATATRAN', 'Sistema transacional de acidentes de trânsito em rodovias federais (PRF)', 'PostgreSQL 16');
@@ -31,9 +44,7 @@ INSERT INTO metadados.tabela_transacional (id_tabela, id_sistema, nome_tabela, d
 (9, 1, 'categoria_vitima', 'Catálogo das 5 categorias de vítima'),
 (10, 1, 'acidentes', 'Cabeçalho da ocorrência (1 linha = 1 acidente)'),
 (11, 1, 'acidente_vitima', 'Contagem de vítimas por categoria e ocorrência'),
-(12, 1, 'acidente_atributo', 'Classificação atributo-valor por ocorrência'),
-(13, 1, 'veiculo_envolvido', 'Extensão conceitual, tabela vazia na fonte'),
-(14, 1, 'pessoa_envolvida', 'Extensão conceitual, tabela vazia na fonte');
+(12, 1, 'acidente_atributo', 'Classificação atributo-valor por ocorrência');
 
 INSERT INTO metadados.campo_transacional (id_campo, id_tabela, id_tipo_campo, nome_campo, descricao, mascara_campo, tamanho_campo, casa_decimal) VALUES
 (1, 1, 2, 'sigla', NULL, NULL, 2, NULL),
@@ -68,20 +79,7 @@ INSERT INTO metadados.campo_transacional (id_campo, id_tabela, id_tipo_campo, no
 (30, 11, 1, 'quantidade', NULL, NULL, NULL, NULL),
 (31, 12, 1, 'acidente_id', NULL, NULL, NULL, NULL),
 (32, 12, 2, 'tipo_atributo', NULL, NULL, 30, NULL),
-(33, 12, 2, 'valor', NULL, NULL, 60, NULL),
-(34, 13, 1, 'id', NULL, NULL, NULL, NULL),
-(35, 13, 1, 'acidente_id', NULL, NULL, NULL, NULL),
-(36, 13, 2, 'tipo_veiculo', NULL, NULL, 30, NULL),
-(37, 13, 2, 'placa', NULL, NULL, 10, NULL),
-(38, 13, 2, 'marca_modelo', NULL, NULL, 60, NULL),
-(39, 13, 1, 'ano_fabricacao', NULL, NULL, NULL, NULL),
-(40, 14, 1, 'id', NULL, NULL, NULL, NULL),
-(41, 14, 1, 'acidente_id', NULL, NULL, NULL, NULL),
-(42, 14, 1, 'veiculo_envolvido_id', NULL, NULL, NULL, NULL),
-(43, 14, 2, 'categoria', NULL, NULL, 20, NULL),
-(44, 14, 2, 'tipo_envolvimento', NULL, NULL, 20, NULL),
-(45, 14, 1, 'idade', NULL, NULL, NULL, NULL),
-(46, 14, 2, 'sexo', NULL, NULL, 1, NULL);
+(33, 12, 2, 'valor', NULL, NULL, 100, NULL);
 
 INSERT INTO metadados.assunto_dw (id_assunto, nome_assunto, descricao) VALUES
 (1, 'Tempo', 'Calendário corporativo (corporativo.tempos)'),
@@ -89,7 +87,6 @@ INSERT INTO metadados.assunto_dw (id_assunto, nome_assunto, descricao) VALUES
 (3, 'Classificação do Acidente', 'Catálogo atributo-valor das 9 classificações de uma ocorrência'),
 (4, 'Vítimas', 'Catálogo das categorias de vítima'),
 (5, 'Ocorrências', 'Fato operacional do corporativo: cabeçalho, vítimas e classificações por ocorrência'),
-(6, 'Veículos e Pessoas', 'Extensão conceitual de granularidade fina (tabelas vazias na fonte atual)'),
 (7, 'Dimensões do Data Mart', 'Dimensões conformadas do data mart em estrela'),
 (8, 'Fato Acidentes', 'Fato dimensional do data mart em estrela');
 
@@ -106,8 +103,6 @@ INSERT INTO metadados.tabela_dw (id_tabela_dw, id_assunto, nome_tabela, tipo_tab
 (10, 5, 'corporativo.ocorrencias', 'Corporativo', '1 linha por ocorrência', 'Incremental (watermark por id de origem)'),
 (11, 5, 'corporativo.ocorrencia_vitima', 'Corporativo', '1 linha por (ocorrência, categoria de vítima)', 'Incremental, append-only'),
 (12, 5, 'corporativo.ocorrencia_classificacao', 'Corporativo', '1 linha por (ocorrência, tipo de classificação)', 'Incremental, append-only'),
-(13, 6, 'corporativo.veiculos_envolvidos', 'Corporativo', '1 linha por veículo envolvido (hoje vazia)', 'N/A'),
-(14, 6, 'corporativo.pessoas_envolvidas', 'Corporativo', '1 linha por pessoa envolvida (hoje vazia)', 'N/A'),
 (15, 7, 'dim_tempo', 'Dimensão', '1 linha por dia', 'Estática (gerada uma vez)'),
 (16, 7, 'dim_local', 'Dimensão', '1 linha por local de acidente (conformada com corporativo.locais_acidente)', 'Incremental'),
 (17, 7, 'dim_classificacao_acidente', 'Dimensão', '1 linha por combinação observada das 9 classificações (junk dimension)', 'Incremental'),
@@ -177,24 +172,7 @@ INSERT INTO metadados.campo_dw (id_campo, id_tabela_dw, id_tipo_campo, nome_camp
 -- corporativo.ocorrencia_classificacao (12)
 (50, 12, 1, 'id_ocorrencia', NULL, 'PK', NULL, NULL),
 (51, 12, 2, 'tipo_classificacao', NULL, 'PK', 30, NULL),
-(52, 12, 2, 'valor', NULL, 'FK', 60, NULL),
--- corporativo.veiculos_envolvidos (13)
-(53, 13, 1, 'id_veiculo', NULL, 'PK', NULL, NULL),
-(54, 13, 1, 'id_ocorrencia', NULL, 'FK', NULL, NULL),
-(55, 13, 2, 'tipo_veiculo', NULL, 'Atributo', 30, NULL),
-(56, 13, 2, 'placa', NULL, 'Atributo', 10, NULL),
-(57, 13, 2, 'marca_modelo', NULL, 'Atributo', 60, NULL),
-(58, 13, 1, 'ano_fabricacao', NULL, 'Atributo', NULL, NULL),
-(59, 13, 4, 'data_carga', NULL, 'Atributo', NULL, NULL),
--- corporativo.pessoas_envolvidas (14)
-(60, 14, 1, 'id_pessoa', NULL, 'PK', NULL, NULL),
-(61, 14, 1, 'id_ocorrencia', NULL, 'FK', NULL, NULL),
-(62, 14, 1, 'id_veiculo', NULL, 'FK', NULL, NULL),
-(63, 14, 2, 'categoria', NULL, 'FK', 20, NULL),
-(64, 14, 2, 'tipo_envolvimento', NULL, 'Atributo', 20, NULL),
-(65, 14, 1, 'idade', NULL, 'Atributo', NULL, NULL),
-(66, 14, 2, 'sexo', NULL, 'Atributo', 1, NULL),
-(67, 14, 4, 'data_carga', NULL, 'Atributo', NULL, NULL),
+(52, 12, 2, 'valor', NULL, 'FK', 100, NULL),
 -- dim_tempo (15)
 (68, 15, 1, 'id_dim_tempo', NULL, 'PK', NULL, NULL),
 (69, 15, 3, 'data', NULL, 'Atributo', NULL, NULL),
@@ -224,7 +202,6 @@ INSERT INTO metadados.campo_dw (id_campo, id_tabela_dw, id_tipo_campo, nome_camp
 (91, 17, 2, 'sentido_via', NULL, 'Atributo', 60, NULL),
 (92, 17, 2, 'condicao_metereologica', NULL, 'Atributo', 60, NULL),
 (93, 17, 2, 'tipo_pista', NULL, 'Atributo', 60, NULL),
-(94, 17, 2, 'tracado_via', NULL, 'Atributo', 60, NULL),
 (95, 17, 2, 'uso_solo', NULL, 'Atributo', 60, NULL),
 (96, 17, 4, 'data_carga', NULL, 'Atributo', NULL, NULL),
 -- fato_acidentes (18)
@@ -271,9 +248,9 @@ INSERT INTO metadados.algoritmo_etl (id_algoritmo, nome_algoritmo, descricao, re
 -- para id_campo_dw_origem (um campo do CORPORATIVO), nunca direto para
 -- id_campo_transacional - o ETL real (airflow/dags/common_etl.py) só lê
 -- essas três tabelas a partir de `corporativo.*`, nunca do `datatran`. Só as
--- tabelas do corporativo (Geografia/Classificação/Vítimas/Ocorrências/
--- Veículos e Pessoas) têm de fato `id_campo_transacional` preenchido, porque
--- são elas que leem o datatran diretamente.
+-- tabelas do corporativo (Geografia/Classificação/Vítimas/Ocorrências) têm
+-- de fato `id_campo_transacional` preenchido, porque são elas que leem o
+-- datatran diretamente.
 INSERT INTO metadados.integracao_transacional_dw (id_campo_transacional, id_campo_dw_origem, id_campo_dw_destino, id_dado_externo_conteudo, id_algoritmo) VALUES
 -- corporativo: Geografia e Via (fonte = datatran)
 (1, NULL, 11, NULL, NULL),
@@ -307,18 +284,6 @@ INSERT INTO metadados.integracao_transacional_dw (id_campo_transacional, id_camp
 (31, NULL, 50, NULL, 6),
 (32, NULL, 51, NULL, NULL),
 (33, NULL, 52, NULL, NULL),
--- corporativo: Veículos e Pessoas (fonte = datatran)
-(35, NULL, 54, NULL, 6),
-(36, NULL, 55, NULL, NULL),
-(37, NULL, 56, NULL, NULL),
-(38, NULL, 57, NULL, NULL),
-(39, NULL, 58, NULL, NULL),
-(41, NULL, 61, NULL, 6),
-(42, NULL, 62, NULL, 6),
-(43, NULL, 63, NULL, NULL),
-(44, NULL, 64, NULL, NULL),
-(45, NULL, 65, NULL, NULL),
-(46, NULL, 66, NULL, NULL),
 -- dim_tempo (calendário, sem origem transacional NEM corporativa - gerado
 -- de forma independente e idêntica nas duas camadas, ver algoritmo 1)
 (NULL, NULL, 69, 1, 1),
@@ -345,7 +310,6 @@ INSERT INTO metadados.integracao_transacional_dw (id_campo_transacional, id_camp
 (NULL, 52, 91, NULL, 7),
 (NULL, 52, 92, NULL, 7),
 (NULL, 52, 93, NULL, 7),
-(NULL, 52, 94, NULL, 7),
 (NULL, 52, 95, NULL, 7),
 -- fato_acidentes (fonte = CORPORATIVO, nunca o datatran - ver
 -- carregar_marting_fato_acidentes/carga_incremental_dw.py)

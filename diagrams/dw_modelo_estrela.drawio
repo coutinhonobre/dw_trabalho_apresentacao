@@ -110,12 +110,12 @@
           <mxGeometry y="222" width="300" height="24" as="geometry" />
         </mxCell>
         <mxCell id="dim_classificacao_acidente" value="dim_classificacao_acidente" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="1220" y="140" width="320" height="318" as="geometry" />
+          <mxGeometry x="1220" y="140" width="320" height="294" as="geometry" />
         </mxCell>
         <mxCell id="dc_c0" value="&lt;b&gt;PK id_dim_classificacao&lt;/b&gt; : INT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
           <mxGeometry y="30" width="320" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="dc_c1" value="causa_acidente : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
+        <mxCell id="dc_c1" value="causa_acidente : VARCHAR(100)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
           <mxGeometry y="54" width="320" height="24" as="geometry" />
         </mxCell>
         <mxCell id="dc_c2" value="tipo_acidente : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
@@ -136,14 +136,20 @@
         <mxCell id="dc_c7" value="tipo_pista : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
           <mxGeometry y="198" width="320" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="dc_c8" value="tracado_via : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
+        <mxCell id="dc_c9" value="uso_solo : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
           <mxGeometry y="222" width="320" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="dc_c9" value="uso_solo : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
+        <mxCell id="dc_c10" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
           <mxGeometry y="246" width="320" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="dc_c10" value="data_carga : TIMESTAMP" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="dim_classificacao_acidente" vertex="1">
-          <mxGeometry y="270" width="320" height="24" as="geometry" />
+        <mxCell id="fato_acidente_tracado_via" value="fato_acidente_tracado_via" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1220" y="500" width="320" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="favt_c0" value="&lt;b&gt;PK,FK id_fato_acidente&lt;/b&gt; : BIGINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="fato_acidente_tracado_via" vertex="1">
+          <mxGeometry y="30" width="320" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="favt_c1" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;" parent="fato_acidente_tracado_via" vertex="1">
+          <mxGeometry y="54" width="320" height="24" as="geometry" />
         </mxCell>
         <mxCell id="e0" value="id_dim_tempo" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="fa_c3" target="dim_tempo" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -152,6 +158,9 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e2" value="id_dim_classificacao" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="fa_c5" target="dim_classificacao_acidente" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="id_fato_acidente" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="favt_c0" target="fato_acidentes" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

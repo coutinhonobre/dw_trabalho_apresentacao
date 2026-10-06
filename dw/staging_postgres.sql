@@ -33,5 +33,12 @@ CREATE TABLE staging.stg_acidente_vitima (
 CREATE TABLE staging.stg_acidente_atributo (
     acidente_id   INTEGER,
     tipo_atributo VARCHAR(30),
-    valor         VARCHAR(60)
+    valor         VARCHAR(100)
+);
+
+-- tracado_via é multivalorado desde 2017 (ver nota "DESCOBERTA" em
+-- db/01_schema.sql) - staging própria, à parte de stg_acidente_atributo.
+CREATE TABLE staging.stg_acidente_tracado_via (
+    acidente_id INTEGER,
+    valor       VARCHAR(30)
 );

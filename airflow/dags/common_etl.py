@@ -15,7 +15,7 @@ import psycopg2
 
 COLUNAS_CLASSIFICACAO = [
     "causa_acidente", "tipo_acidente", "classificacao_acidente", "fase_dia",
-    "sentido_via", "condicao_metereologica", "tipo_pista", "tracado_via", "uso_solo",
+    "sentido_via", "condicao_metereologica", "tipo_pista", "uso_solo",
 ]
 
 NAO_INFORMADO = "Não informado"
@@ -166,6 +166,20 @@ def copiar_classificacoes_validas(oltp_cur, pg_cur):
     return len(linhas)
 
 
+def copiar_tracados_via_validos(oltp_cur, pg_cur):
+    """Catálogo da 9a classificação (tracado_via), à parte do genérico acima
+    - ver nota ''DESCOBERTA'' em db/01_schema.sql."""
+    oltp_cur.execute("SELECT valor FROM tracado_via_valido")
+    linhas = oltp_cur.fetchall()
+    for (valor,) in linhas:
+        pg_cur.execute(
+            "INSERT INTO corporativo.tracados_via_validos (valor) VALUES (%s) "
+            "ON CONFLICT (valor) DO NOTHING",
+            (valor,),
+        )
+    return len(linhas)
+
+
 # ----------------------------------------------------------------
 # corporativo — fato operacional (ocorrencias / ocorrencia_vitima /
 # ocorrencia_classificacao), sempre append-only.
@@ -193,6 +207,13 @@ def inserir_corporativo_classificacao(cur, id_ocorrencia, tipo_classificacao, va
         "INSERT INTO corporativo.ocorrencia_classificacao (id_ocorrencia, tipo_classificacao, valor) "
         "VALUES (%s, %s, %s)",
         (id_ocorrencia, tipo_classificacao, valor),
+    )
+
+
+def inserir_corporativo_tracado_via(cur, id_ocorrencia, valor):
+    cur.execute(
+        "INSERT INTO corporativo.ocorrencia_tracado_via (id_ocorrencia, valor) VALUES (%s, %s)",
+        (id_ocorrencia, valor),
     )
 
 

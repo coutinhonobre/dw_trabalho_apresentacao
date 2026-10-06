@@ -447,6 +447,57 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         "table", {}, FILTERS_PERIODO_UF,
     )
 
+    # ---- Camada 5 (ML): cluster_municipio / regra_associacao, gravadas pelo
+    # DAG ml_clusterizacao_regras_associacao - sem os filtros Período/UF do
+    # resto do painel (tabelas de resultado, não ligadas a dim_tempo/dim_local).
+    # Cards aparecem vazios/com erro até o DAG rodar ao menos uma vez.
+    cards["municipios_por_cluster"] = make_card(
+        mb, database_id, collection_id, "Municípios por Cluster",
+        """
+        SELECT cluster, count(*) AS municipios
+        FROM cluster_municipio
+        GROUP BY cluster
+        ORDER BY cluster
+        """,
+        "bar", {"graph.dimensions": ["cluster"], "graph.metrics": ["municipios"]}, [],
+    )
+    cards["perfil_risco_cluster"] = make_card(
+        mb, database_id, collection_id, "Perfil de Risco por Cluster",
+        """
+        SELECT
+            cluster,
+            count(*) AS municipios,
+            sum(n_ocorrencias) AS ocorrencias,
+            round(avg(taxa_letalidade), 4) AS taxa_letalidade_media,
+            round(avg(taxa_feridos_graves), 4) AS taxa_feridos_graves_media,
+            round(avg(veiculos_medio), 2) AS veiculos_medio,
+            round(avg(prop_fim_semana), 4) AS prop_fim_semana,
+            round(avg(prop_noite), 4) AS prop_noite,
+            round(avg(prop_chuva), 4) AS prop_chuva,
+            round(avg(prop_pista_simples), 4) AS prop_pista_simples,
+            round(avg(concentracao_causa), 4) AS concentracao_causa
+        FROM cluster_municipio
+        GROUP BY cluster
+        ORDER BY cluster
+        """,
+        "table", {}, [],
+    )
+    cards["top_regras_por_cluster"] = make_card(
+        mb, database_id, collection_id, "Top Regras de Associação por Cluster",
+        """
+        SELECT cluster, antecedente, consequente, suporte, confianca, lift
+        FROM (
+            SELECT
+                cluster, antecedente, consequente, suporte, confianca, lift,
+                row_number() OVER (PARTITION BY cluster ORDER BY lift DESC) AS posicao
+            FROM regra_associacao
+        ) ranqueadas
+        WHERE posicao <= 5
+        ORDER BY cluster, lift DESC
+        """,
+        "table", {}, [],
+    )
+
     return cards
 
 
@@ -499,6 +550,10 @@ def build_dashboard(mb: MB, collection_id: int, cards: dict) -> int:
         dashcard(-14, cards["tipo_pista"], 25, 12, 12, 7),
         # linha 5: tabela detalhada
         dashcard(-15, cards["resumo_uf"], 32, 0, 24, 10),
+        # linha 6: ML - clusterização de municípios + regras de associação
+        dashcard(-16, cards["municipios_por_cluster"], 42, 0, 8, 8),
+        dashcard(-17, cards["perfil_risco_cluster"], 42, 8, 16, 8),
+        dashcard(-18, cards["top_regras_por_cluster"], 50, 0, 24, 10),
     ]
     mb.put(f"/api/dashboard/{dash_id}", json={
         "dashcards": dashcards,

@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="acidentes" value="acidentes" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="720" y="40" width="300" height="150" as="geometry" />
+          <mxGeometry x="720" y="40" width="300" height="342" as="geometry" />
         </mxCell>
         <mxCell id="acidentes_c0" value="&lt;b&gt;PK id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1">
           <mxGeometry y="30" width="300" height="24" as="geometry" />
@@ -23,7 +23,7 @@
           <mxGeometry y="126" width="300" height="24" as="geometry" />
         </mxCell>
         <mxCell id="acidente_vitima" value="acidente_vitima" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="720" y="260" width="300" height="102" as="geometry" />
+          <mxGeometry x="720" y="410" width="300" height="102" as="geometry" />
         </mxCell>
         <mxCell id="acidente_vitima_c0" value="&lt;b&gt;PK,FK acidente_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_vitima" vertex="1">
           <mxGeometry y="30" width="300" height="24" as="geometry" />
@@ -35,46 +35,13 @@
           <mxGeometry y="78" width="300" height="24" as="geometry" />
         </mxCell>
         <mxCell id="categoria_vitima" value="categoria_vitima" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="720" y="400" width="260" height="78" as="geometry" />
+          <mxGeometry x="720" y="550" width="260" height="78" as="geometry" />
         </mxCell>
         <mxCell id="categoria_vitima_c0" value="&lt;b&gt;PK categoria&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="categoria_vitima" vertex="1">
           <mxGeometry y="30" width="260" height="24" as="geometry" />
         </mxCell>
         <mxCell id="categoria_vitima_c1" value="descricao : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="categoria_vitima" vertex="1">
           <mxGeometry y="54" width="260" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="acidente_atributo" value="acidente_atributo" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="1510" y="70" width="300" height="102" as="geometry" />
-        </mxCell>
-        <mxCell id="acidente_atributo_c0" value="&lt;b&gt;PK,FK acidente_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_atributo" vertex="1">
-          <mxGeometry y="30" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="acidente_atributo_c1" value="&lt;b&gt;PK,FK tipo_atributo&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_atributo" vertex="1">
-          <mxGeometry y="54" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="acidente_atributo_c2" value="&lt;b&gt;FK valor&lt;/b&gt; : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_atributo" vertex="1">
-          <mxGeometry y="78" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="tipo_atributo" value="tipo_atributo" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="1420" y="708" width="300" height="102" as="geometry" />
-        </mxCell>
-        <mxCell id="tipo_atributo_c0" value="&lt;b&gt;PK tipo_atributo&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tipo_atributo" vertex="1">
-          <mxGeometry y="30" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="tipo_atributo_c1" value="descricao : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tipo_atributo" vertex="1">
-          <mxGeometry y="54" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="tipo_atributo_c2" value="obrigatorio : BOOLEAN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tipo_atributo" vertex="1">
-          <mxGeometry y="78" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="atributo_valor_valido" value="atributo_valor_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="1180" y="524" width="300" height="78" as="geometry" />
-        </mxCell>
-        <mxCell id="atributo_valor_valido_c0" value="&lt;b&gt;PK,FK tipo_atributo&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="atributo_valor_valido" vertex="1">
-          <mxGeometry y="30" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="atributo_valor_valido_c1" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="atributo_valor_valido" vertex="1">
-          <mxGeometry y="54" width="300" height="24" as="geometry" />
         </mxCell>
         <mxCell id="calendario" value="calendario" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
           <mxGeometry x="380" y="-250" width="240" height="102" as="geometry" />
@@ -139,50 +106,20 @@
         <mxCell id="local_acidente_c2" value="&lt;b&gt;FK localizacao_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="local_acidente" vertex="1">
           <mxGeometry y="78" width="240" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="veiculo_envolvido" value="veiculo_envolvido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="300" y="810" width="300" height="174" as="geometry" />
+        <mxCell id="tracado_via_valido" value="tracado_via_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1510" y="280" width="240" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="veiculo_envolvido_c0" value="&lt;b&gt;PK id&lt;/b&gt; : SERIAL" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
+        <mxCell id="tracado_via_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tracado_via_valido" vertex="1">
+          <mxGeometry y="30" width="240" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="acidente_tracado_via" value="acidente_tracado_via" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
+          <mxGeometry x="1510" y="420" width="300" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="acidente_tracado_via_c0" value="&lt;b&gt;PK,FK acidente_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_tracado_via" vertex="1">
           <mxGeometry y="30" width="300" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="veiculo_envolvido_c1" value="&lt;b&gt;FK acidente_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
+        <mxCell id="acidente_tracado_via_c1" value="&lt;b&gt;PK,FK valor&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidente_tracado_via" vertex="1">
           <mxGeometry y="54" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="veiculo_envolvido_c2" value="tipo_veiculo : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
-          <mxGeometry y="78" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="veiculo_envolvido_c3" value="placa : VARCHAR(10)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
-          <mxGeometry y="102" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="veiculo_envolvido_c4" value="marca_modelo : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
-          <mxGeometry y="126" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="veiculo_envolvido_c5" value="ano_fabricacao : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="veiculo_envolvido" vertex="1">
-          <mxGeometry y="150" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida" value="pessoa_envolvida" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1">
-          <mxGeometry x="690" y="860" width="300" height="198" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c0" value="&lt;b&gt;PK id&lt;/b&gt; : SERIAL" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="30" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c1" value="&lt;b&gt;FK acidente_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="54" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c2" value="&lt;b&gt;FK veiculo_envolvido_id&lt;/b&gt; : INTEGER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="78" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c3" value="&lt;b&gt;FK categoria&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="102" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c4" value="tipo_envolvimento : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="126" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c5" value="idade : SMALLINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="150" width="300" height="24" as="geometry" />
-        </mxCell>
-        <mxCell id="pessoa_envolvida_c6" value="sexo : CHAR(1)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="pessoa_envolvida" vertex="1">
-          <mxGeometry y="174" width="300" height="24" as="geometry" />
         </mxCell>
         <mxCell id="edge_0" value="data" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c1" target="calendario" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -208,25 +145,13 @@
         <mxCell id="edge_7" value="categoria" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidente_vitima_c1" target="categoria_vitima" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge_8" value="acidente_id" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidente_atributo_c0" target="acidentes" edge="1">
+        <mxCell id="edge_15" value="acidente_id" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidente_tracado_via_c0" target="acidentes" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge_9" value="(tipo_atributo, valor)" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidente_atributo_c2" target="atributo_valor_valido" edge="1">
+        <mxCell id="edge_16" value="valor" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidente_tracado_via_c1" target="tracado_via_valido" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge_10" value="tipo_atributo" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;exitX=1;exitY=0;exitDx=0;exitDy=0;" parent="1" source="atributo_valor_valido_c1" target="tipo_atributo" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="edge_11" value="acidente_id" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="veiculo_envolvido_c1" target="acidentes" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="edge_13" value="veiculo_envolvido_id" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="pessoa_envolvida_c2" target="veiculo_envolvido" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="edge_14" value="categoria" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;dashed=1;fontSize=10;labelBackgroundColor=#ffffff;entryX=1;entryY=1;entryDx=0;entryDy=0;" parent="1" source="pessoa_envolvida_c3" target="categoria_vitima_c0" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-      </root>
+        <mxCell id="acidentes_c5" value="FK causa_acidente : VARCHAR(100)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="150" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c6" value="FK tipo_acidente : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="174" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c7" value="FK classificacao_acidente : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="198" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c8" value="FK fase_dia : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="222" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c9" value="&lt;b&gt;FK sentido_via&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="246" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c10" value="FK condicao_metereologica : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="270" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c11" value="FK tipo_pista : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="294" width="300" height="24" as="geometry" /></mxCell><mxCell id="acidentes_c12" value="FK uso_solo : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="acidentes" vertex="1"><mxGeometry y="318" width="300" height="24" as="geometry" /></mxCell><mxCell id="causa_acidente_valido" value="causa_acidente_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2000" y="40" width="280" height="54" as="geometry" /></mxCell><mxCell id="causa_acidente_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(100)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="causa_acidente_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="tipo_acidente_valido" value="tipo_acidente_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2300" y="40" width="280" height="54" as="geometry" /></mxCell><mxCell id="tipo_acidente_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(60)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tipo_acidente_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="classificacao_acidente_valido" value="classificacao_acidente_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2000" y="150" width="280" height="54" as="geometry" /></mxCell><mxCell id="classificacao_acidente_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="classificacao_acidente_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="fase_dia_valido" value="fase_dia_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2300" y="150" width="280" height="54" as="geometry" /></mxCell><mxCell id="fase_dia_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="fase_dia_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="sentido_via_valido" value="sentido_via_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2000" y="260" width="280" height="54" as="geometry" /></mxCell><mxCell id="sentido_via_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="sentido_via_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="condicao_metereologica_valido" value="condicao_metereologica_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2300" y="260" width="280" height="54" as="geometry" /></mxCell><mxCell id="condicao_metereologica_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="condicao_metereologica_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="tipo_pista_valido" value="tipo_pista_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2000" y="370" width="280" height="54" as="geometry" /></mxCell><mxCell id="tipo_pista_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="tipo_pista_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="uso_solo_valido" value="uso_solo_valido" style="swimlane;whiteSpace=wrap;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;align=center;verticalAlign=top;horizontal=1;" parent="1" vertex="1"><mxGeometry x="2300" y="370" width="280" height="54" as="geometry" /></mxCell><mxCell id="uso_solo_valido_c0" value="&lt;b&gt;PK valor&lt;/b&gt; : VARCHAR(20)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;whiteSpace=nowrap;overflow=hidden;portConstraint=eastwest;" parent="uso_solo_valido" vertex="1"><mxGeometry y="30" width="280" height="24" as="geometry" /></mxCell><mxCell id="edge_ec0" value="causa_acidente" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c5" target="causa_acidente_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec1" value="tipo_acidente" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c6" target="tipo_acidente_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec2" value="classificacao_acidente" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c7" target="classificacao_acidente_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec3" value="fase_dia" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c8" target="fase_dia_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec4" value="sentido_via" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c9" target="sentido_via_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec5" value="condicao_metereologica" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c10" target="condicao_metereologica_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec6" value="tipo_pista" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c11" target="tipo_pista_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell><mxCell id="edge_ec7" value="uso_solo" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;fontSize=10;labelBackgroundColor=#ffffff;" parent="1" source="acidentes_c12" target="uso_solo_valido" edge="1"><mxGeometry relative="1" as="geometry" /></mxCell></root>
     </mxGraphModel>
   </diagram>
 </mxfile>

@@ -17,9 +17,34 @@ services:
       POSTGRES_DB: datatran
     ports:
       - "5432:5432"
+    # 02-*: um arquivo por ano (gerado por scripts/gerar_inserts.py, ver
+    # cabeçalho do script) - 02-00-catalogos.sql (uf/município/local_acidente/
+    # etc., compartilhados entre anos) tem que vir antes de qualquer
+    # 02-NN-AAAA.sql; a ordem entre os anos em si não importa (cada um só
+    # referencia os catálogos, nunca outro ano).
     volumes:
       - "./db/01_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"
-      - "./db/02_data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro"
+      - "./db/02-00-catalogos.sql:/docker-entrypoint-initdb.d/02-00-catalogos.sql:ro"
+      - "./db/02-01-2007.sql:/docker-entrypoint-initdb.d/02-01-2007.sql:ro"
+      - "./db/02-02-2008.sql:/docker-entrypoint-initdb.d/02-02-2008.sql:ro"
+      - "./db/02-03-2009.sql:/docker-entrypoint-initdb.d/02-03-2009.sql:ro"
+      - "./db/02-04-2010.sql:/docker-entrypoint-initdb.d/02-04-2010.sql:ro"
+      - "./db/02-05-2011.sql:/docker-entrypoint-initdb.d/02-05-2011.sql:ro"
+      - "./db/02-06-2012.sql:/docker-entrypoint-initdb.d/02-06-2012.sql:ro"
+      - "./db/02-07-2013.sql:/docker-entrypoint-initdb.d/02-07-2013.sql:ro"
+      - "./db/02-08-2014.sql:/docker-entrypoint-initdb.d/02-08-2014.sql:ro"
+      - "./db/02-09-2015.sql:/docker-entrypoint-initdb.d/02-09-2015.sql:ro"
+      - "./db/02-10-2016.sql:/docker-entrypoint-initdb.d/02-10-2016.sql:ro"
+      - "./db/02-11-2017.sql:/docker-entrypoint-initdb.d/02-11-2017.sql:ro"
+      - "./db/02-12-2018.sql:/docker-entrypoint-initdb.d/02-12-2018.sql:ro"
+      - "./db/02-13-2019.sql:/docker-entrypoint-initdb.d/02-13-2019.sql:ro"
+      - "./db/02-14-2020.sql:/docker-entrypoint-initdb.d/02-14-2020.sql:ro"
+      - "./db/02-15-2021.sql:/docker-entrypoint-initdb.d/02-15-2021.sql:ro"
+      - "./db/02-16-2022.sql:/docker-entrypoint-initdb.d/02-16-2022.sql:ro"
+      - "./db/02-17-2023.sql:/docker-entrypoint-initdb.d/02-17-2023.sql:ro"
+      - "./db/02-18-2024.sql:/docker-entrypoint-initdb.d/02-18-2024.sql:ro"
+      - "./db/02-19-2025.sql:/docker-entrypoint-initdb.d/02-19-2025.sql:ro"
+      - "./db/02-20-2026.sql:/docker-entrypoint-initdb.d/02-20-2026.sql:ro"
       - "./dw/dw_postgres.sql:/docker-entrypoint-initdb.d/03-dw-schema.sql:ro"
       - "./dw/metadados_postgres.sql:/docker-entrypoint-initdb.d/04-metadados.sql:ro"
       - "./dw/staging_postgres.sql:/docker-entrypoint-initdb.d/05-staging.sql:ro"
@@ -41,7 +66,9 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "airflow:admin"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: "/opt/airflow/simple_auth_manager_passwords.json"
-      _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary"
+      # psycopg2-binary: DAGs de carga (common_etl.py). As demais: DAG
+      # ml_clusterizacao_regras_associacao, que importa ml/clusterizacao_regras_associacao.py.
+      _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary pandas scikit-learn mlxtend matplotlib"
       # carregar_corporativo_ocorrencias processa ~127 mil linhas num loop
       # Python síncrono só com round-trips de banco, sem ponto natural pra
       # heartbeat - o default de 300s (5 min) é curto demais pra essa carga.
@@ -54,6 +81,7 @@ services:
     volumes:
       - "./airflow/dags:/opt/airflow/dags"
       - "./airflow/simple_auth_manager_passwords.json:/opt/airflow/simple_auth_manager_passwords.json"
+      - "./ml:/opt/airflow/dags/ml"
     command: standalone
 
   # ============================================================

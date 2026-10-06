@@ -31,10 +31,12 @@ from common_etl import (
     copiar_categorias_vitima,
     copiar_classificacoes_validas,
     copiar_tipos_classificacao,
+    copiar_tracados_via_validos,
     get_or_create_classificacao,
     get_pg_conn,
     inserir_corporativo_classificacao,
     inserir_corporativo_ocorrencia,
+    inserir_corporativo_tracado_via,
     inserir_corporativo_vitima,
     refresh_dim_local,
     resolver_local_acidente,
@@ -55,7 +57,10 @@ def stage_acidentes():
                 "WHERE sistema_origem = 'PRF-DATATRAN'"
             )
             watermark = cur.fetchone()[0]
-            cur.execute("TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, staging.stg_acidente_atributo")
+            cur.execute(
+                "TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, "
+                "staging.stg_acidente_atributo, staging.stg_acidente_tracado_via"
+            )
 
         with oltp_conn.cursor() as cur:
             cur.execute("""
@@ -71,13 +76,15 @@ def stage_acidentes():
             novos = cur.fetchall()
             ids_novos = [r[0] for r in novos]
 
-            vitimas, atributos = [], []
+            vitimas, atributos, tracados = [], [], []
             if ids_novos:
                 fmt = ",".join(["%s"] * len(ids_novos))
                 cur.execute(f"SELECT acidente_id, categoria, quantidade FROM acidente_vitima WHERE acidente_id IN ({fmt})", ids_novos)
                 vitimas = cur.fetchall()
                 cur.execute(f"SELECT acidente_id, tipo_atributo, valor FROM acidente_atributo WHERE acidente_id IN ({fmt})", ids_novos)
                 atributos = cur.fetchall()
+                cur.execute(f"SELECT acidente_id, valor FROM acidente_tracado_via WHERE acidente_id IN ({fmt})", ids_novos)
+                tracados = cur.fetchall()
 
         if novos:
             with pg_conn.cursor() as cur:
@@ -93,6 +100,10 @@ def stage_acidentes():
                 if atributos:
                     psycopg2.extras.execute_values(
                         cur, "INSERT INTO staging.stg_acidente_atributo (acidente_id, tipo_atributo, valor) VALUES %s", atributos,
+                    )
+                if tracados:
+                    psycopg2.extras.execute_values(
+                        cur, "INSERT INTO staging.stg_acidente_tracado_via (acidente_id, valor) VALUES %s", tracados,
                     )
         pg_conn.commit()
         print(f"watermark={watermark}, {len(novos)} ocorrências novas staged")
@@ -117,8 +128,10 @@ def atualizar_corporativo_catalogos():
             n_categorias = copiar_categorias_vitima(oltp_cur, pg_cur)
             n_tipos = copiar_tipos_classificacao(oltp_cur, pg_cur)
             n_valores = copiar_classificacoes_validas(oltp_cur, pg_cur)
+            n_tracados = copiar_tracados_via_validos(oltp_cur, pg_cur)
         pg_conn.commit()
-        print(f"corporativo catálogos: {n_categorias} categorias_vitima, {n_tipos} tipos_classificacao, {n_valores} classificacoes_validas")
+        print(f"corporativo catálogos: {n_categorias} categorias_vitima, {n_tipos} tipos_classificacao, "
+              f"{n_valores} classificacoes_validas, {n_tracados} tracados_via_validos")
     finally:
         oltp_conn.close()
         pg_conn.close()
@@ -157,6 +170,8 @@ def carregar_corporativo_ocorrencias():
             vitimas = cur.fetchall()
             cur.execute("SELECT acidente_id, tipo_atributo, valor FROM staging.stg_acidente_atributo")
             atributos = cur.fetchall()
+            cur.execute("SELECT acidente_id, valor FROM staging.stg_acidente_tracado_via")
+            tracados = cur.fetchall()
 
         vitimas_por_acidente = {}
         for aid, categoria, quantidade in vitimas:
@@ -164,6 +179,9 @@ def carregar_corporativo_ocorrencias():
         atributos_por_acidente = {}
         for aid, tipo, valor in atributos:
             atributos_por_acidente.setdefault(aid, []).append((tipo, valor))
+        tracados_por_acidente = {}
+        for aid, valor in tracados:
+            tracados_por_acidente.setdefault(aid, []).append(valor)
 
         with pg_conn.cursor() as cur:
             for (oid, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos) in staged:
@@ -173,6 +191,8 @@ def carregar_corporativo_ocorrencias():
                     inserir_corporativo_vitima(cur, id_ocorrencia, categoria, quantidade)
                 for tipo, valor in atributos_por_acidente.get(oid, []):
                     inserir_corporativo_classificacao(cur, id_ocorrencia, tipo, valor)
+                for valor in tracados_por_acidente.get(oid, []):
+                    inserir_corporativo_tracado_via(cur, id_ocorrencia, valor)
         pg_conn.commit()
         print(f"corporativo.ocorrencias: {len(staged)} ocorrências novas inseridas")
     finally:
@@ -258,13 +278,15 @@ def carregar_marting_fato_acidentes():
             novas = cur.fetchall()
             ids_novas = [r[0] for r in novas]
 
-            vitima_rows, classif_rows = [], []
+            vitima_rows, classif_rows, tracado_rows = [], [], []
             if ids_novas:
                 fmt = ",".join(["%s"] * len(ids_novas))
                 cur.execute(f"SELECT id_ocorrencia, categoria, quantidade FROM corporativo.ocorrencia_vitima WHERE id_ocorrencia IN ({fmt})", ids_novas)
                 vitima_rows = cur.fetchall()
                 cur.execute(f"SELECT id_ocorrencia, tipo_classificacao, valor FROM corporativo.ocorrencia_classificacao WHERE id_ocorrencia IN ({fmt})", ids_novas)
                 classif_rows = cur.fetchall()
+                cur.execute(f"SELECT id_ocorrencia, valor FROM corporativo.ocorrencia_tracado_via WHERE id_ocorrencia IN ({fmt})", ids_novas)
+                tracado_rows = cur.fetchall()
 
         vitimas_por_ocorrencia = {}
         for id_ocorrencia, categoria, quantidade in vitima_rows:
@@ -272,8 +294,12 @@ def carregar_marting_fato_acidentes():
         classif_por_ocorrencia = {}
         for id_ocorrencia, tipo, valor in classif_rows:
             classif_por_ocorrencia.setdefault(id_ocorrencia, {})[tipo] = valor
+        tracado_por_ocorrencia = {}
+        for id_ocorrencia, valor in tracado_rows:
+            tracado_por_ocorrencia.setdefault(id_ocorrencia, []).append(valor)
 
         rows = []
+        ids_ocorrencia_por_linha = []
         cache_classificacao = {}
         with pg_conn.cursor() as cur:
             for id_ocorrencia, id_origem, id_tempo, id_local, veiculos in novas:
@@ -300,17 +326,29 @@ def carregar_marting_fato_acidentes():
                     id_dim_classificacao,
                     veiculos, mortos, feridos_leves, feridos_graves, ilesos, ignorados, feridos, pessoas,
                 ))
+                ids_ocorrencia_por_linha.append(id_ocorrencia)
 
+        bridge_rows = []
         if rows:
             with pg_conn.cursor() as cur:
-                psycopg2.extras.execute_values(cur, """
+                ids_fato = psycopg2.extras.execute_values(cur, """
                     INSERT INTO fato_acidentes
                         (sistema_origem, id_ocorrencia_original, id_dim_tempo, id_dim_local, id_dim_classificacao,
                          veiculos, mortos, feridos_leves, feridos_graves, ilesos, ignorados, feridos, pessoas)
                     VALUES %s
-                """, rows)
+                    RETURNING id_fato_acidente
+                """, rows, fetch=True)
+
+                for id_ocorrencia, (id_fato_acidente,) in zip(ids_ocorrencia_por_linha, ids_fato):
+                    for valor in tracado_por_ocorrencia.get(id_ocorrencia, []):
+                        bridge_rows.append((id_fato_acidente, valor))
+                if bridge_rows:
+                    psycopg2.extras.execute_values(cur, """
+                        INSERT INTO fato_acidente_tracado_via (id_fato_acidente, valor) VALUES %s
+                    """, bridge_rows)
             pg_conn.commit()
-        print(f"fato_acidentes: {len(rows)} linhas novas inseridas")
+        print(f"fato_acidentes: {len(rows)} linhas novas inseridas "
+              f"({len(bridge_rows)} linhas novas em fato_acidente_tracado_via)")
     finally:
         pg_conn.close()
 
@@ -319,7 +357,10 @@ def limpar_staging():
     pg_conn = get_pg_conn("dw")
     try:
         with pg_conn.cursor() as cur:
-            cur.execute("TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, staging.stg_acidente_atributo")
+            cur.execute(
+                "TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, "
+                "staging.stg_acidente_atributo, staging.stg_acidente_tracado_via"
+            )
         pg_conn.commit()
         print("staging limpa")
     finally:
@@ -332,6 +373,7 @@ with DAG(
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    is_paused_upon_creation=False,  # consistente com carga_inicial_dw - disparo manual, mas sem passo extra de unpause
     tags=["dw", "etl", "carga-incremental"],
 ) as dag:
 
