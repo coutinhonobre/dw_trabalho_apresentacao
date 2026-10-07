@@ -28,13 +28,12 @@ from airflow.operators.python import PythonOperator
 from common_etl import (
     COLUNAS_CLASSIFICACAO,
     NAO_INFORMADO,
+    carregar_mapa_tempo,
+    copiar_catalogos_classificacao,
     copiar_categorias_vitima,
-    copiar_classificacoes_validas,
-    copiar_tipos_classificacao,
     copiar_tracados_via_validos,
     get_or_create_classificacao,
     get_pg_conn,
-    inserir_corporativo_classificacao,
     inserir_corporativo_ocorrencia,
     inserir_corporativo_tracado_via,
     inserir_corporativo_vitima,
@@ -59,12 +58,14 @@ def stage_acidentes():
             watermark = cur.fetchone()[0]
             cur.execute(
                 "TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, "
-                "staging.stg_acidente_atributo, staging.stg_acidente_tracado_via"
+                "staging.stg_acidente_tracado_via"
             )
 
+        cols_classificacao = ", ".join(f"a.{c}" for c in COLUNAS_CLASSIFICACAO)
         with oltp_conn.cursor() as cur:
-            cur.execute("""
-                SELECT a.id, a.data, a.horario, u.sigla, u.nome, m.nome, r.numero, loc.km, a.veiculos
+            cur.execute(f"""
+                SELECT a.id, a.data, a.horario, u.sigla, u.nome, m.nome, r.numero, loc.km, a.veiculos,
+                       {cols_classificacao}
                 FROM acidentes a
                 LEFT JOIN local_acidente la ON la.id = a.local_id
                 LEFT JOIN municipio m ON m.id = la.municipio_id
@@ -76,30 +77,26 @@ def stage_acidentes():
             novos = cur.fetchall()
             ids_novos = [r[0] for r in novos]
 
-            vitimas, atributos, tracados = [], [], []
+            vitimas, tracados = [], []
             if ids_novos:
                 fmt = ",".join(["%s"] * len(ids_novos))
                 cur.execute(f"SELECT acidente_id, categoria, quantidade FROM acidente_vitima WHERE acidente_id IN ({fmt})", ids_novos)
                 vitimas = cur.fetchall()
-                cur.execute(f"SELECT acidente_id, tipo_atributo, valor FROM acidente_atributo WHERE acidente_id IN ({fmt})", ids_novos)
-                atributos = cur.fetchall()
                 cur.execute(f"SELECT acidente_id, valor FROM acidente_tracado_via WHERE acidente_id IN ({fmt})", ids_novos)
                 tracados = cur.fetchall()
 
         if novos:
             with pg_conn.cursor() as cur:
-                psycopg2.extras.execute_values(cur, """
+                cols_staging = ", ".join(COLUNAS_CLASSIFICACAO)
+                psycopg2.extras.execute_values(cur, f"""
                     INSERT INTO staging.stg_acidentes
-                        (id, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos)
+                        (id, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos,
+                         {cols_staging})
                     VALUES %s
                 """, novos)
                 if vitimas:
                     psycopg2.extras.execute_values(
                         cur, "INSERT INTO staging.stg_acidente_vitima (acidente_id, categoria, quantidade) VALUES %s", vitimas,
-                    )
-                if atributos:
-                    psycopg2.extras.execute_values(
-                        cur, "INSERT INTO staging.stg_acidente_atributo (acidente_id, tipo_atributo, valor) VALUES %s", atributos,
                     )
                 if tracados:
                     psycopg2.extras.execute_values(
@@ -126,12 +123,11 @@ def atualizar_corporativo_catalogos():
     try:
         with oltp_conn.cursor() as oltp_cur, pg_conn.cursor() as pg_cur:
             n_categorias = copiar_categorias_vitima(oltp_cur, pg_cur)
-            n_tipos = copiar_tipos_classificacao(oltp_cur, pg_cur)
-            n_valores = copiar_classificacoes_validas(oltp_cur, pg_cur)
+            n_classificacoes = copiar_catalogos_classificacao(oltp_cur, pg_cur)
             n_tracados = copiar_tracados_via_validos(oltp_cur, pg_cur)
         pg_conn.commit()
-        print(f"corporativo catálogos: {n_categorias} categorias_vitima, {n_tipos} tipos_classificacao, "
-              f"{n_valores} classificacoes_validas, {n_tracados} tracados_via_validos")
+        print(f"corporativo catálogos: {n_categorias} categorias_vitima, {n_classificacoes} valores "
+              f"nos 8 catálogos de classificação, {n_tracados} tracados_via_validos")
     finally:
         oltp_conn.close()
         pg_conn.close()
@@ -160,37 +156,35 @@ def carregar_corporativo_ocorrencias():
     inserção usada na carga inicial, sem DELETE prévio."""
     pg_conn = get_pg_conn("dw")
     try:
+        cols_classificacao = ", ".join(COLUNAS_CLASSIFICACAO)
         with pg_conn.cursor() as cur:
-            cur.execute("""
-                SELECT id, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos
+            cur.execute(f"""
+                SELECT id, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos,
+                       {cols_classificacao}
                 FROM staging.stg_acidentes
             """)
             staged = cur.fetchall()
             cur.execute("SELECT acidente_id, categoria, quantidade FROM staging.stg_acidente_vitima")
             vitimas = cur.fetchall()
-            cur.execute("SELECT acidente_id, tipo_atributo, valor FROM staging.stg_acidente_atributo")
-            atributos = cur.fetchall()
             cur.execute("SELECT acidente_id, valor FROM staging.stg_acidente_tracado_via")
             tracados = cur.fetchall()
 
         vitimas_por_acidente = {}
         for aid, categoria, quantidade in vitimas:
             vitimas_por_acidente.setdefault(aid, []).append((categoria, quantidade))
-        atributos_por_acidente = {}
-        for aid, tipo, valor in atributos:
-            atributos_por_acidente.setdefault(aid, []).append((tipo, valor))
         tracados_por_acidente = {}
         for aid, valor in tracados:
             tracados_por_acidente.setdefault(aid, []).append(valor)
 
         with pg_conn.cursor() as cur:
-            for (oid, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos) in staged:
+            mapa_tempo = carregar_mapa_tempo(cur)
+            for linha in staged:
+                oid, data, horario, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km, veiculos = linha[:9]
+                classificacao = dict(zip(COLUNAS_CLASSIFICACAO, linha[9:]))
                 id_local = resolver_local_acidente(cur, uf_sigla, uf_nome, municipio_nome, rodovia_numero, km)
-                id_ocorrencia = inserir_corporativo_ocorrencia(cur, oid, data, horario, id_local, veiculos)
+                id_ocorrencia = inserir_corporativo_ocorrencia(cur, oid, mapa_tempo[data], horario, id_local, veiculos, classificacao)
                 for categoria, quantidade in vitimas_por_acidente.get(oid, []):
                     inserir_corporativo_vitima(cur, id_ocorrencia, categoria, quantidade)
-                for tipo, valor in atributos_por_acidente.get(oid, []):
-                    inserir_corporativo_classificacao(cur, id_ocorrencia, tipo, valor)
                 for valor in tracados_por_acidente.get(oid, []):
                     inserir_corporativo_tracado_via(cur, id_ocorrencia, valor)
         pg_conn.commit()
@@ -227,29 +221,19 @@ def atualizar_marting_dim_local():
 def atualizar_marting_dim_classificacao():
     pg_conn = get_pg_conn("dw")
     try:
+        cols_classificacao = ", ".join(f"o.{c}" for c in COLUNAS_CLASSIFICACAO)
         with pg_conn.cursor() as cur:
-            cur.execute("""
-                SELECT o.id_ocorrencia
+            cur.execute(f"""
+                SELECT {cols_classificacao}
                 FROM corporativo.ocorrencias o
                 JOIN staging.stg_acidentes s ON s.id::text = o.id_ocorrencia_origem
             """)
-            novas = [r[0] for r in cur.fetchall()]
-            cur.execute("""
-                SELECT oc.id_ocorrencia, oc.tipo_classificacao, oc.valor
-                FROM corporativo.ocorrencia_classificacao oc
-                JOIN corporativo.ocorrencias o ON o.id_ocorrencia = oc.id_ocorrencia
-                JOIN staging.stg_acidentes s ON s.id::text = o.id_ocorrencia_origem
-            """)
-            classif_rows = cur.fetchall()
-
-        classif_por_ocorrencia = {}
-        for id_ocorrencia, tipo, valor in classif_rows:
-            classif_por_ocorrencia.setdefault(id_ocorrencia, {})[tipo] = valor
+            linhas = cur.fetchall()
 
         vistos = set()
         with pg_conn.cursor() as cur:
-            for id_ocorrencia in novas:
-                valores = classif_por_ocorrencia.get(id_ocorrencia, {})
+            for linha in linhas:
+                valores = dict(zip(COLUNAS_CLASSIFICACAO, linha))
                 chave = tuple((valores.get(c) or NAO_INFORMADO) for c in COLUNAS_CLASSIFICACAO)
                 if chave in vistos:
                     continue
@@ -270,30 +254,27 @@ def carregar_marting_fato_acidentes():
             cur.execute("SELECT id_local_original, id_dim_local FROM dim_local WHERE sistema_origem = 'PRF-DATATRAN'")
             local_map = {r[0]: r[1] for r in cur.fetchall()}
 
-            cur.execute("""
-                SELECT o.id_ocorrencia, o.id_ocorrencia_origem, o.id_tempo, o.id_local, o.veiculos
+            cols_classificacao = ", ".join(f"o.{c}" for c in COLUNAS_CLASSIFICACAO)
+            cur.execute(f"""
+                SELECT o.id_ocorrencia, o.id_ocorrencia_origem, o.id_tempo, o.id_local, o.veiculos,
+                       {cols_classificacao}
                 FROM corporativo.ocorrencias o
                 JOIN staging.stg_acidentes s ON s.id::text = o.id_ocorrencia_origem
             """)
             novas = cur.fetchall()
             ids_novas = [r[0] for r in novas]
 
-            vitima_rows, classif_rows, tracado_rows = [], [], []
+            vitima_rows, tracado_rows = [], []
             if ids_novas:
                 fmt = ",".join(["%s"] * len(ids_novas))
                 cur.execute(f"SELECT id_ocorrencia, categoria, quantidade FROM corporativo.ocorrencia_vitima WHERE id_ocorrencia IN ({fmt})", ids_novas)
                 vitima_rows = cur.fetchall()
-                cur.execute(f"SELECT id_ocorrencia, tipo_classificacao, valor FROM corporativo.ocorrencia_classificacao WHERE id_ocorrencia IN ({fmt})", ids_novas)
-                classif_rows = cur.fetchall()
                 cur.execute(f"SELECT id_ocorrencia, valor FROM corporativo.ocorrencia_tracado_via WHERE id_ocorrencia IN ({fmt})", ids_novas)
                 tracado_rows = cur.fetchall()
 
         vitimas_por_ocorrencia = {}
         for id_ocorrencia, categoria, quantidade in vitima_rows:
             vitimas_por_ocorrencia.setdefault(id_ocorrencia, {})[categoria] = quantidade
-        classif_por_ocorrencia = {}
-        for id_ocorrencia, tipo, valor in classif_rows:
-            classif_por_ocorrencia.setdefault(id_ocorrencia, {})[tipo] = valor
         tracado_por_ocorrencia = {}
         for id_ocorrencia, valor in tracado_rows:
             tracado_por_ocorrencia.setdefault(id_ocorrencia, []).append(valor)
@@ -302,8 +283,9 @@ def carregar_marting_fato_acidentes():
         ids_ocorrencia_por_linha = []
         cache_classificacao = {}
         with pg_conn.cursor() as cur:
-            for id_ocorrencia, id_origem, id_tempo, id_local, veiculos in novas:
-                valores_classificacao = classif_por_ocorrencia.get(id_ocorrencia, {})
+            for linha in novas:
+                id_ocorrencia, id_origem, id_tempo, id_local, veiculos = linha[:5]
+                valores_classificacao = dict(zip(COLUNAS_CLASSIFICACAO, linha[5:]))
                 chave = tuple((valores_classificacao.get(c) or NAO_INFORMADO) for c in COLUNAS_CLASSIFICACAO)
                 id_dim_classificacao = cache_classificacao.get(chave)
                 if id_dim_classificacao is None:
@@ -359,7 +341,7 @@ def limpar_staging():
         with pg_conn.cursor() as cur:
             cur.execute(
                 "TRUNCATE staging.stg_acidentes, staging.stg_acidente_vitima, "
-                "staging.stg_acidente_atributo, staging.stg_acidente_tracado_via"
+                "staging.stg_acidente_tracado_via"
             )
         pg_conn.commit()
         print("staging limpa")

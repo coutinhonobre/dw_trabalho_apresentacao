@@ -12,24 +12,52 @@ Postgres — todas as conexões são psycopg2, sem pymysql.
 from __future__ import annotations
 
 import psycopg2
+import psycopg2.extras
 
 COLUNAS_CLASSIFICACAO = [
     "causa_acidente", "tipo_acidente", "classificacao_acidente", "fase_dia",
     "sentido_via", "condicao_metereologica", "tipo_pista", "uso_solo",
 ]
 
+# (tabela de catálogo no OLTP, tabela de catálogo no corporativo) para cada
+# uma das 8 classificações acima, na mesma ordem - usado por
+# copiar_catalogos_classificacao(). Os dois lados guardam só a coluna `valor`
+# (PK) - ver db/01_schema.sql e dw/dw_postgres.sql (nota "REMODELAGEM").
+CATALOGOS_CLASSIFICACAO = [
+    ("causa_acidente_valido", "causas_acidente"),
+    ("tipo_acidente_valido", "tipos_acidente"),
+    ("classificacao_acidente_valido", "classificacoes_acidente"),
+    ("fase_dia_valido", "fases_dia"),
+    ("sentido_via_valido", "sentidos_via"),
+    ("condicao_metereologica_valido", "condicoes_metereologicas"),
+    ("tipo_pista_valido", "tipos_pista"),
+    ("uso_solo_valido", "usos_solo"),
+]
+
 NAO_INFORMADO = "Não informado"
+
+# Linhas por lote nas cargas que leem tabelas multi-milionárias
+# (carga_inicial_dw.py: acidentes/acidente_vitima/acidente_tracado_via no
+# OLTP somam 2,2M+linhas nos 20 anos de dataset, e corporativo.ocorrencias/
+# ocorrencia_vitima/ocorrencia_tracado_via espelham essa escala). Processar
+# tudo de uma vez com fetchall() materializa a tabela inteira (+ os dicts de
+# pivot) em memória Python simultaneamente - OOM observado em produção com o
+# dataset completo carregado. Em lotes, o pico de memória fica limitado a
+# TAMANHO_LOTE linhas por vez, e cada lote comita sua própria transação.
+TAMANHO_LOTE = 5000
 
 
 def get_pg_conn(dbname):
     return psycopg2.connect(host="postgres", port=5432, user="postgres", password="postgres", dbname=dbname)
 
 
-def get_id_tempo(cur, data):
-    """corporativo.tempos/dim_tempo cobrem 2000-01-01 a 2035-12-31 (gerados
-    no DDL) — qualquer data do datatran cai nesse intervalo."""
-    cur.execute("SELECT id_tempo FROM corporativo.tempos WHERE data = %s", (data,))
-    return cur.fetchone()[0]
+def carregar_mapa_tempo(cur):
+    """Carrega data -> id_tempo de uma vez (corporativo.tempos tem só ~13k
+    linhas, 2000-2035, geradas no DDL) - substitui o antigo get_id_tempo
+    (1 round-trip por ocorrência) por 1 round-trip total, reaproveitado via
+    lookup em memória pelas 2,2M+ ocorrências do dataset completo."""
+    cur.execute("SELECT data, id_tempo FROM corporativo.tempos")
+    return {data: id_tempo for data, id_tempo in cur.fetchall()}
 
 
 def get_id_dim_tempo(cur, data):
@@ -113,7 +141,13 @@ def resolver_local_acidente(cur, uf_sigla, uf_nome, municipio_nome, rodovia_nume
     """Resolve a hierarquia inteira (uf -> municipio, rodovia -> localizacao
     -> local_acidente) a partir dos valores já achatados vindos do datatran
     (ou da staging). Retorna None se uf/br/km vierem NULL na fonte — mesmas 5
-    ocorrências sem local que o OLTP já documenta (db/01_schema.sql)."""
+    ocorrências sem local que o OLTP já documenta (db/01_schema.sql).
+
+    1 round-trip por nível (até 5 no total) - aceitável pro volume pequeno da
+    carga incremental (só a geografia nova do delta). Pra volume de carga
+    inicial (368k+ combinações distintas), ver resolver_geografia_em_lote +
+    carregar_mapa_local_acidente abaixo, que resolvem tudo de uma vez via SQL
+    em lote em vez de round-trip por combinação."""
     if uf_sigla is None or municipio_nome is None or rodovia_numero is None or km is None:
         return None
     id_uf = get_or_create_uf(cur, uf_sigla, uf_nome)
@@ -121,6 +155,89 @@ def resolver_local_acidente(cur, uf_sigla, uf_nome, municipio_nome, rodovia_nume
     id_rodovia = get_or_create_rodovia(cur, rodovia_numero)
     id_localizacao = get_or_create_localizacao(cur, id_rodovia, km)
     return get_or_create_local_acidente(cur, id_municipio, id_localizacao)
+
+
+def resolver_geografia_em_lote(cur, combos, page_size=5000):
+    """Equivalente em lote de resolver_local_acidente, pra carga inicial:
+    resolve TODAS as combinações (uf, município, rodovia, km) de uma vez via
+    5 upserts em lote (um por nível da hierarquia, cada um com
+    ON CONFLICT ... DO NOTHING - mesma idempotência do get_or_create_* linha
+    a linha), em vez de 1 round-trip por nível POR combinação. Com 368k+
+    combinações distintas no dataset completo (20 anos), o loop antigo (até 5
+    round-trips x 368k) levava mais de 1h só nesta etapa; em lote são ~5
+    round-trips por página (page_size combinações por INSERT).
+
+    `combos`: lista de tuplas (uf_sigla, uf_nome, municipio_nome,
+    rodovia_numero, km) - os 5 campos vêm não-nulos, garantido pelos INNER
+    JOINs da query que monta `combos` em carregar_corporativo_geografia (só
+    existe linha em local_acidente com os dois lados preenchidos)."""
+    if not combos:
+        return
+
+    ufs = sorted({(sigla, nome) for sigla, nome, _, _, _ in combos})
+    rodovias = sorted({(numero,) for _, _, _, numero, _ in combos})
+    municipios = sorted({(nome, sigla) for sigla, _, nome, _, _ in combos})
+    localizacoes = sorted({(numero, km) for _, _, _, numero, km in combos})
+    locais = sorted({(nome, sigla, numero, km) for sigla, _, nome, numero, km in combos})
+
+    psycopg2.extras.execute_values(
+        cur,
+        "INSERT INTO corporativo.ufs (sigla, nome) VALUES %s ON CONFLICT (sigla) DO NOTHING",
+        ufs, page_size=page_size,
+    )
+    psycopg2.extras.execute_values(
+        cur,
+        "INSERT INTO corporativo.rodovias (numero) VALUES %s ON CONFLICT (numero) DO NOTHING",
+        rodovias, page_size=page_size,
+    )
+    psycopg2.extras.execute_values(
+        cur,
+        "INSERT INTO corporativo.municipios (nome, id_uf) "
+        "SELECT DISTINCT v.nome, u.id_uf FROM (VALUES %s) AS v (nome, sigla) "
+        "JOIN corporativo.ufs u ON u.sigla = v.sigla "
+        "ON CONFLICT (nome, id_uf) DO NOTHING",
+        municipios, page_size=page_size,
+    )
+    psycopg2.extras.execute_values(
+        cur,
+        "INSERT INTO corporativo.localizacoes (id_rodovia, km) "
+        "SELECT DISTINCT r.id_rodovia, v.km FROM (VALUES %s) AS v (numero, km) "
+        "JOIN corporativo.rodovias r ON r.numero = v.numero "
+        "ON CONFLICT (id_rodovia, km) DO NOTHING",
+        localizacoes, page_size=page_size,
+    )
+    psycopg2.extras.execute_values(
+        cur,
+        "INSERT INTO corporativo.locais_acidente (id_municipio, id_localizacao) "
+        "SELECT DISTINCT m.id_municipio, l.id_localizacao "
+        "FROM (VALUES %s) AS v (municipio_nome, uf_sigla, rodovia_numero, km) "
+        "JOIN corporativo.ufs u ON u.sigla = v.uf_sigla "
+        "JOIN corporativo.municipios m ON m.nome = v.municipio_nome AND m.id_uf = u.id_uf "
+        "JOIN corporativo.rodovias r ON r.numero = v.rodovia_numero "
+        "JOIN corporativo.localizacoes l ON l.id_rodovia = r.id_rodovia AND l.km = v.km "
+        "ON CONFLICT (id_municipio, id_localizacao) DO NOTHING",
+        locais, page_size=page_size,
+    )
+
+
+def carregar_mapa_local_acidente(cur):
+    """Carrega (uf_sigla, municipio_nome, rodovia_numero, km) -> id_local de
+    uma vez (368k+ combos no dataset completo, leve em memória: tuplas de 4
+    campos escalares) - usado pra resolver id_local por lookup em memória
+    durante a carga de ocorrências, 1 round-trip total em vez de repetir
+    resolver_local_acidente (até 5 round-trips) pra cada uma das 2,2M+
+    ocorrências. Só funciona porque a geografia já foi toda resolvida por
+    resolver_geografia_em_lote antes - a carga de ocorrências não cria
+    combinação nova, só consulta."""
+    cur.execute("""
+        SELECT u.sigla, m.nome, r.numero, l.km, la.id_local
+        FROM corporativo.locais_acidente la
+        JOIN corporativo.municipios m ON m.id_municipio = la.id_municipio
+        JOIN corporativo.ufs u ON u.id_uf = m.id_uf
+        JOIN corporativo.localizacoes l ON l.id_localizacao = la.id_localizacao
+        JOIN corporativo.rodovias r ON r.id_rodovia = l.id_rodovia
+    """)
+    return {(sigla, nome, numero, km): id_local for sigla, nome, numero, km, id_local in cur.fetchall()}
 
 
 # ----------------------------------------------------------------
@@ -141,29 +258,25 @@ def copiar_categorias_vitima(oltp_cur, pg_cur):
     return len(linhas)
 
 
-def copiar_tipos_classificacao(oltp_cur, pg_cur):
-    oltp_cur.execute("SELECT tipo_atributo, descricao, obrigatorio FROM tipo_atributo")
-    linhas = oltp_cur.fetchall()
-    for tipo_atributo, descricao, obrigatorio in linhas:
-        pg_cur.execute(
-            "INSERT INTO corporativo.tipos_classificacao (tipo_classificacao, descricao, obrigatorio) "
-            "VALUES (%s, %s, %s) ON CONFLICT (tipo_classificacao) DO UPDATE SET "
-            "descricao = EXCLUDED.descricao, obrigatorio = EXCLUDED.obrigatorio",
-            (tipo_atributo, descricao, obrigatorio),
-        )
-    return len(linhas)
-
-
-def copiar_classificacoes_validas(oltp_cur, pg_cur):
-    oltp_cur.execute("SELECT tipo_atributo, valor FROM atributo_valor_valido")
-    linhas = oltp_cur.fetchall()
-    for tipo_atributo, valor in linhas:
-        pg_cur.execute(
-            "INSERT INTO corporativo.classificacoes_validas (tipo_classificacao, valor) VALUES (%s, %s) "
-            "ON CONFLICT (tipo_classificacao, valor) DO NOTHING",
-            (tipo_atributo, valor),
-        )
-    return len(linhas)
+def copiar_catalogos_classificacao(oltp_cur, pg_cur):
+    """Copia os 8 catálogos de classificação (um por tipo) do OLTP pro
+    corporativo, cada um pra sua própria tabela dedicada - ver
+    CATALOGOS_CLASSIFICACAO. Substitui as antigas copiar_tipos_classificacao/
+    copiar_classificacoes_validas (EAV genérico), removidas junto com
+    tipo_atributo/atributo_valor_valido (ver nota "REMODELAGEM" em
+    dw/dw_postgres.sql)."""
+    total = 0
+    for tabela_oltp, tabela_corp in CATALOGOS_CLASSIFICACAO:
+        oltp_cur.execute(f"SELECT valor FROM {tabela_oltp}")
+        linhas = oltp_cur.fetchall()
+        for (valor,) in linhas:
+            pg_cur.execute(
+                f"INSERT INTO corporativo.{tabela_corp} (valor) VALUES (%s) "
+                f"ON CONFLICT (valor) DO NOTHING",
+                (valor,),
+            )
+        total += len(linhas)
+    return total
 
 
 def copiar_tracados_via_validos(oltp_cur, pg_cur):
@@ -182,15 +295,23 @@ def copiar_tracados_via_validos(oltp_cur, pg_cur):
 
 # ----------------------------------------------------------------
 # corporativo — fato operacional (ocorrencias / ocorrencia_vitima /
-# ocorrencia_classificacao), sempre append-only.
+# ocorrencia_tracado_via), sempre append-only.
 # ----------------------------------------------------------------
 
-def inserir_corporativo_ocorrencia(cur, id_origem, data, horario, id_local, veiculos):
-    id_tempo = get_id_tempo(cur, data)
+def inserir_corporativo_ocorrencia(cur, id_origem, id_tempo, horario, id_local, veiculos, classificacao):
+    """`classificacao` é um dict com (um subconjunto d)as 8 chaves de
+    COLUNAS_CLASSIFICACAO - chave ausente ou valor None grava NULL na coluna
+    correspondente, igual ao OLTP (db/01_schema.sql.acidentes). `id_tempo` já
+    vem resolvido pelo chamador (ver carregar_mapa_tempo) - sem round-trip
+    aqui, ao contrário da versão anterior (get_id_tempo por ocorrência)."""
+    cols_classificacao = ", ".join(COLUNAS_CLASSIFICACAO)
+    placeholders_classificacao = ", ".join(["%s"] * len(COLUNAS_CLASSIFICACAO))
+    valores_classificacao = tuple(classificacao.get(c) for c in COLUNAS_CLASSIFICACAO)
     cur.execute(
-        "INSERT INTO corporativo.ocorrencias (id_ocorrencia_origem, id_tempo, horario, id_local, veiculos) "
-        "VALUES (%s, %s, %s, %s, %s) RETURNING id_ocorrencia",
-        (str(id_origem), id_tempo, horario, id_local, veiculos),
+        f"INSERT INTO corporativo.ocorrencias "
+        f"(id_ocorrencia_origem, id_tempo, horario, id_local, veiculos, {cols_classificacao}) "
+        f"VALUES (%s, %s, %s, %s, %s, {placeholders_classificacao}) RETURNING id_ocorrencia",
+        (str(id_origem), id_tempo, horario, id_local, veiculos) + valores_classificacao,
     )
     return cur.fetchone()[0]
 
@@ -199,14 +320,6 @@ def inserir_corporativo_vitima(cur, id_ocorrencia, categoria, quantidade):
     cur.execute(
         "INSERT INTO corporativo.ocorrencia_vitima (id_ocorrencia, categoria, quantidade) VALUES (%s, %s, %s)",
         (id_ocorrencia, categoria, quantidade),
-    )
-
-
-def inserir_corporativo_classificacao(cur, id_ocorrencia, tipo_classificacao, valor):
-    cur.execute(
-        "INSERT INTO corporativo.ocorrencia_classificacao (id_ocorrencia, tipo_classificacao, valor) "
-        "VALUES (%s, %s, %s)",
-        (id_ocorrencia, tipo_classificacao, valor),
     )
 
 

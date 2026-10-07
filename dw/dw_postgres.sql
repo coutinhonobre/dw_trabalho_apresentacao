@@ -32,9 +32,9 @@ CREATE SCHEMA corporativo;
 --   sistemas" que a propriedade motiva, ainda que aqui não haja um segundo
 --   sistema *diferente* como no projeto de referência (Mercearia+Northwind).
 --
---   NÃO-VOLÁTIL: `ocorrencias`/`ocorrencia_vitima`/`ocorrencia_classificacao`
---   são append-only - uma vez carregada, uma ocorrência nunca sofre UPDATE,
---   só INSERT de ocorrências novas (ver airflow/dags/carga_incremental_dw.py).
+--   NÃO-VOLÁTIL: `ocorrencias`/`ocorrencia_vitima` são append-only - uma vez
+--   carregada, uma ocorrência nunca sofre UPDATE, só INSERT de ocorrências
+--   novas (ver airflow/dags/carga_incremental_dw.py).
 --
 --   VARIANTE NO TEMPO: cada ocorrência é permanentemente amarrada à
 --   `id_tempo` em que aconteceu; a série histórica cresce, nunca é
@@ -44,14 +44,29 @@ CREATE SCHEMA corporativo;
 -- lá, `clientes`/`funcionarios`/`produtos` precisam de histórico versionado
 -- (upsert_historizado, SCD2) porque atributos descritivos (renda, cargo,
 -- preço) mudam ao longo do tempo para a MESMA chave natural. Aqui, nenhuma
--- entidade de apoio (`ufs`, `municipios`, `rodovias`, `localizacoes`,
--- `tipos_classificacao`, `classificacoes_validas`, `categorias_vitima`) tem
--- atributo descritivo que mude no dataset de origem - nome de município e
--- sigla de UF são efetivamente estáticos. Por isso este schema não usa
--- upsert_historizado em lugar nenhum: todas as tabelas de apoio usam upsert
--- simples (existe ou não pela chave natural), e a única coisa genuinamente
--- variante no tempo é a CHEGADA de ocorrências novas, não a mudança de
--- atributos de uma dimensão de apoio.
+-- entidade de apoio (`ufs`, `municipios`, `rodovias`, `localizacoes`, os 8
+-- catálogos de classificação, `categorias_vitima`) tem atributo descritivo
+-- que mude no dataset de origem - nome de município e sigla de UF são
+-- efetivamente estáticos. Por isso este schema não usa upsert_historizado em
+-- lugar nenhum: todas as tabelas de apoio usam upsert simples (existe ou não
+-- pela chave natural), e a única coisa genuinamente variante no tempo é a
+-- CHEGADA de ocorrências novas, não a mudança de atributos de uma dimensão
+-- de apoio.
+--
+-- REMODELAGEM (pós ajuste do transacional): a 1a versão deste schema mantinha
+-- a classificação do acidente como atributo-valor genérico no corporativo
+-- (`tipos_classificacao`/`classificacoes_validas`/`ocorrencia_classificacao`),
+-- espelhando o EAV que o OLTP tinha então. O OLTP (db/01_schema.sql) trocou
+-- esse EAV por 8 colunas tipadas + 8 catálogos dedicados, pelo motivo
+-- documentado lá (antipadrão quando o conjunto de atributos é fixo e
+-- conhecido de antemão - Karwin, "SQL Antipatterns", cap. 6). Esse motivo não
+-- é específico do OLTP: continuar EAV aqui depois que a fonte deixou de ser
+-- EAV reintroduziria, na camada corporativa, a mesma perda de tipagem/NOT
+-- NULL por atributo - sem nenhum ganho de integração em troca (o conjunto de
+-- 8 classificações é o mesmo em qualquer ano de carga). Por isso o
+-- corporativo foi remodelado para a mesma decomposição do OLTP: 8 colunas
+-- próprias em `ocorrencias`, cada uma FK pra seu catálogo dedicado (ver
+-- ASSUNTO: CLASSIFICAÇÃO DO ACIDENTE abaixo).
 -- ============================================================================
 
 -- ----------------------------
@@ -138,29 +153,59 @@ CREATE TABLE corporativo.locais_acidente (
 -- ----------------------------
 -- ASSUNTO: CLASSIFICAÇÃO DO ACIDENTE
 -- ----------------------------
--- Mesmo catálogo atributo-valor do OLTP (tipo_atributo / atributo_valor_valido),
--- copiado (não recriado do zero) pelo ETL a partir do OLTP - o corporativo não
--- inventa valores válidos, só espelha o que o sistema de origem já validou.
+-- 8 catálogos dedicados, um por classificação de valor único - mesma
+-- decomposição do OLTP atual (db/01_schema.sql: causa_acidente_valido,
+-- tipo_acidente_valido, ..., uso_solo_valido), copiados (não recriados do
+-- zero) pelo ETL a partir do OLTP - o corporativo não inventa valores
+-- válidos, só espelha o que o sistema de origem já validou. Substituem o
+-- catálogo atributo-valor genérico (tipo_atributo/atributo_valor_valido) que
+-- uma versão anterior deste schema tinha - ver nota "REMODELAGEM" no
+-- cabeçalho deste arquivo.
+--
 -- tracado_via NÃO está aqui (nem no OLTP - ver db/01_schema.sql, nota
 -- "DESCOBERTA"): a partir de 2017 a PRF passou a admitir mais de um traçado
 -- por ocorrência, então é um atributo multivalorado próprio
 -- (corporativo.tracados_via_validos/ocorrencia_tracado_via logo abaixo), não
--- parte deste catálogo genérico de valor único por tipo.
+-- um catálogo de valor único por tipo.
 
-CREATE TABLE corporativo.tipos_classificacao (
-    tipo_classificacao VARCHAR(30) PRIMARY KEY,
-    descricao VARCHAR(60) NOT NULL,
-    obrigatorio BOOLEAN NOT NULL DEFAULT TRUE,
+CREATE TABLE corporativo.causas_acidente (
+    valor VARCHAR(100) PRIMARY KEY,  -- maior observado: 78 (rótulos 2017+)
     data_carga TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- 100: maior valor observado é um rótulo de causa_acidente com 78 caracteres
--- (anos 2017+) - mesma largura de db/01_schema.sql.atributo_valor_valido.
-CREATE TABLE corporativo.classificacoes_validas (
-    tipo_classificacao VARCHAR(30) NOT NULL REFERENCES corporativo.tipos_classificacao (tipo_classificacao),
-    valor VARCHAR(100) NOT NULL,
-    data_carga TIMESTAMP NOT NULL DEFAULT now(),
-    PRIMARY KEY (tipo_classificacao, valor)
+CREATE TABLE corporativo.tipos_acidente (
+    valor VARCHAR(60) PRIMARY KEY,  -- maior observado: 42
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.classificacoes_acidente (
+    valor VARCHAR(30) PRIMARY KEY,  -- maior observado: 19
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.fases_dia (
+    valor VARCHAR(20) PRIMARY KEY,  -- maior observado: 11
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.sentidos_via (
+    valor VARCHAR(20) PRIMARY KEY,  -- maior observado: 13
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.condicoes_metereologicas (
+    valor VARCHAR(30) PRIMARY KEY,  -- maior observado: 16
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.tipos_pista (
+    valor VARCHAR(20) PRIMARY KEY,  -- maior observado: 8
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE corporativo.usos_solo (
+    valor VARCHAR(20) PRIMARY KEY,  -- maior observado: 6
+    data_carga TIMESTAMP NOT NULL DEFAULT now()
 );
 
 -- Catálogo + associativa da 9a classificação (tracado_via), espelhando
@@ -187,6 +232,12 @@ CREATE TABLE corporativo.categorias_vitima (
 -- (`acidentes`), mas com chave substituta própria (sequência corporativa,
 -- independente do `id` do CSV) + par sistema_origem/id_ocorrencia_origem
 -- para rastreabilidade e para admitir múltiplos anos de carga sem colisão.
+-- As 8 classificações de valor único entram como colunas próprias, cada uma
+-- FK pra um catálogo dedicado (ver ASSUNTO: CLASSIFICAÇÃO DO ACIDENTE acima)
+-- - mesma decomposição do OLTP (db/01_schema.sql.acidentes), não mais um EAV
+-- (ver nota "REMODELAGEM" no cabeçalho deste arquivo). `NOT NULL` só em
+-- `sentido_via`, pelo mesmo levantamento empírico do OLTP (0 nulos nas
+-- 2.237.189 ocorrências verificadas; as outras 7 têm nulos reais).
 
 CREATE SEQUENCE corporativo.seq_ocorrencias START 1;
 
@@ -198,12 +249,30 @@ CREATE TABLE corporativo.ocorrencias (
     horario TIME NOT NULL,
     id_local INT REFERENCES corporativo.locais_acidente (id_local), -- NULL: mesmas 5 ocorrências sem uf/br/km na fonte (ver db/01_schema.sql)
     veiculos SMALLINT NOT NULL,
+
+    causa_acidente          VARCHAR(100) REFERENCES corporativo.causas_acidente (valor),
+    tipo_acidente           VARCHAR(60) REFERENCES corporativo.tipos_acidente (valor),
+    classificacao_acidente  VARCHAR(30) REFERENCES corporativo.classificacoes_acidente (valor),
+    fase_dia                VARCHAR(20) REFERENCES corporativo.fases_dia (valor),
+    sentido_via             VARCHAR(20) NOT NULL REFERENCES corporativo.sentidos_via (valor),
+    condicao_metereologica  VARCHAR(30) REFERENCES corporativo.condicoes_metereologicas (valor),
+    tipo_pista               VARCHAR(20) REFERENCES corporativo.tipos_pista (valor),
+    uso_solo                VARCHAR(20) REFERENCES corporativo.usos_solo (valor),
+
     data_carga TIMESTAMP NOT NULL DEFAULT now(),
     UNIQUE (sistema_origem, id_ocorrencia_origem)
 );
 
 CREATE INDEX idx_ocorrencias_tempo ON corporativo.ocorrencias (id_tempo);
 CREATE INDEX idx_ocorrencias_local ON corporativo.ocorrencias (id_local);
+CREATE INDEX idx_ocorrencias_causa ON corporativo.ocorrencias (causa_acidente);
+CREATE INDEX idx_ocorrencias_tipo ON corporativo.ocorrencias (tipo_acidente);
+CREATE INDEX idx_ocorrencias_classificacao ON corporativo.ocorrencias (classificacao_acidente);
+CREATE INDEX idx_ocorrencias_fase_dia ON corporativo.ocorrencias (fase_dia);
+CREATE INDEX idx_ocorrencias_sentido_via ON corporativo.ocorrencias (sentido_via);
+CREATE INDEX idx_ocorrencias_condicao_metereologica ON corporativo.ocorrencias (condicao_metereologica);
+CREATE INDEX idx_ocorrencias_tipo_pista ON corporativo.ocorrencias (tipo_pista);
+CREATE INDEX idx_ocorrencias_uso_solo ON corporativo.ocorrencias (uso_solo);
 
 -- Tabela associativa: mesma decomposição 4FN do OLTP (`acidente_vitima`), só
 -- que ligada à chave substituta `id_ocorrencia`.
@@ -212,18 +281,6 @@ CREATE TABLE corporativo.ocorrencia_vitima (
     categoria VARCHAR(20) NOT NULL REFERENCES corporativo.categorias_vitima (categoria),
     quantidade SMALLINT NOT NULL CHECK (quantidade > 0),
     PRIMARY KEY (id_ocorrencia, categoria)
-);
-
--- Mesmo padrão atributo-valor do OLTP (`acidente_atributo`), preservado aqui
--- de propósito: o corporativo não "desnormaliza de volta" para colunas
--- tipadas - isso só acontece no data mart em estrela (dim_classificacao_acidente),
--- que é otimizado para consulta, não para integridade por assunto.
-CREATE TABLE corporativo.ocorrencia_classificacao (
-    id_ocorrencia BIGINT NOT NULL REFERENCES corporativo.ocorrencias (id_ocorrencia),
-    tipo_classificacao VARCHAR(30) NOT NULL,
-    valor VARCHAR(100) NOT NULL,
-    PRIMARY KEY (id_ocorrencia, tipo_classificacao),
-    FOREIGN KEY (tipo_classificacao, valor) REFERENCES corporativo.classificacoes_validas (tipo_classificacao, valor)
 );
 
 -- Tabela associativa da 9a classificação (tracado_via), espelhando
@@ -235,5 +292,4 @@ CREATE TABLE corporativo.ocorrencia_tracado_via (
 );
 
 CREATE INDEX idx_ocorrencia_vitima_categoria ON corporativo.ocorrencia_vitima (categoria);
-CREATE INDEX idx_ocorrencia_classificacao_tipo_valor ON corporativo.ocorrencia_classificacao (tipo_classificacao, valor);
 CREATE INDEX idx_ocorrencia_tracado_via_valor ON corporativo.ocorrencia_tracado_via (valor);

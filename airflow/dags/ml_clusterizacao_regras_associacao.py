@@ -25,7 +25,7 @@ from airflow.operators.python import PythonOperator
 sys.path.insert(0, str(Path(__file__).resolve().parent / "ml"))
 
 
-def _rodar_clusterizacao_regras_associacao():
+def _rodar_clusterizacao_regras_associacao(**context):
     from clusterizacao_regras_associacao import rodar_pipeline
 
     rodar_pipeline(
@@ -33,17 +33,24 @@ def _rodar_clusterizacao_regras_associacao():
         dbname="dw",
         output_dir="/opt/airflow/dags/ml/output",
         persist=True,
+        ano=context["params"]["ano"],
     )
 
 
 with DAG(
     dag_id="ml_clusterizacao_regras_associacao",
-    description="Clusterização de municípios (KMeans) + regras de associação (Apriori) por cluster",
+    description="Clusterização de municípios (KMeans) + regras de associação (Apriori) por cluster, de um ano por vez",
     schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
     is_paused_upon_creation=False,
     tags=["dw", "ml", "clusterizacao", "regras-associacao"],
+    # Os 20 anos juntos (~2,2M ocorrências) fazem o Apriori por cluster
+    # estourar a memória disponível no container do Airflow (ver nota em
+    # ml/clusterizacao_regras_associacao.py:rodar_pipeline) - roda um ano por
+    # vez; troque o valor ao disparar a DAG ("Trigger DAG w/ config") pra
+    # analisar outro ano.
+    params={"ano": 2024},
 ) as dag:
     t_ml = PythonOperator(
         task_id="rodar_clusterizacao_regras_associacao",

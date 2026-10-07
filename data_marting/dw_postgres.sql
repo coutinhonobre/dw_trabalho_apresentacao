@@ -12,18 +12,21 @@
 -- Decisão de modelagem registrada: 8 das 9 classificações do acidente
 -- (causa_acidente, tipo_acidente, classificacao_acidente, fase_dia,
 -- sentido_via, condicao_metereologica, tipo_pista, uso_solo) - que no OLTP e
--- no corporativo são um catálogo atributo-valor genérico
--- (`acidente_atributo`/`ocorrencia_classificacao`) - viram aqui uma única
--- DIMENSÃO JUNK (`dim_classificacao_acidente`): uma linha por COMBINAÇÃO das
--- 8 flags realmente observada nos dados (não o produto cartesiano teórico),
--- em vez de 8 dimensões separadas ou 8 FKs soltas no fato. É o padrão Kimball
--- para agrupar várias flags/atributos de baixo-médio cardinalidade
--- correlacionados que, sozinhos, não justificam uma dimensão própria nem
--- valem a pena ficar "soltos" como degenerate dimension. Cada campo usa
--- 'Não informado' no lugar de NULL exatamente para a UNIQUE da dimensão
--- funcionar - Postgres trata NULL como distinto de NULL, então duas
--- ocorrências sem `condicao_metereologica` (por exemplo) gerariam duas
--- linhas "iguais" na dimensão sem esse cuidado.
+-- no corporativo são 8 colunas próprias, cada uma FK pra um catálogo
+-- dedicado (ver db/01_schema.sql e corporativo.ocorrencias em
+-- dw/dw_postgres.sql) - viram aqui uma única DIMENSÃO JUNK
+-- (`dim_classificacao_acidente`): uma linha por COMBINAÇÃO das 8 flags
+-- realmente observada nos dados (não o produto cartesiano teórico), em vez
+-- de 8 dimensões separadas ou 8 FKs soltas no fato. É o padrão Kimball para
+-- agrupar várias flags/atributos de baixo-médio cardinalidade correlacionados
+-- que, sozinhos, não justificam uma dimensão própria nem valem a pena ficar
+-- "soltos" como degenerate dimension - decisão independente de como a fonte
+-- guarda essas 8 classificações (colunas tipadas, não um EAV; a junk
+-- dimension é sobre o padrão de CONSULTA no mart, não sobre a implementação
+-- da origem). Cada campo usa 'Não informado' no lugar de NULL exatamente
+-- para a UNIQUE da dimensão funcionar - Postgres trata NULL como distinto de
+-- NULL, então duas ocorrências sem `condicao_metereologica` (por exemplo)
+-- gerariam duas linhas "iguais" na dimensão sem esse cuidado.
 --
 -- A 9a classificação (tracado_via) NÃO está na junk dimension: desde 2017 a
 -- PRF permite mais de um traçado por ocorrência (ver nota "DESCOBERTA" em

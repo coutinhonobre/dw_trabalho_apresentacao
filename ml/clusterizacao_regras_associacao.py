@@ -114,16 +114,28 @@ def parse_args():
     p.add_argument("--min-support", type=float, default=0.05)
     p.add_argument("--min-lift", type=float, default=1.1)
     p.add_argument("--min-confidence", type=float, default=0.3)
+    p.add_argument("--max-itemset-len", type=int, default=2,
+                    help="tamanho máximo do itemset no Apriori (default: 2, ou seja regras "
+                         "1 antecedente -> 1 consequente). Itemsets maiores geram muita "
+                         "superset do mesmo par forte (ex.: a mesma causa->tipo_acidente "
+                         "repetida com +1 item de contexto cada vez) e ficam ilegíveis numa "
+                         "tabela de dashboard - ver nota em regras_por_cluster.")
     p.add_argument("--top-n-rules", type=int, default=15,
                     help="quantas regras por cluster manter no relatório final (default: 15)")
     p.add_argument("--output-dir", default=str(SCRIPT_DIR / "output"))
     p.add_argument("--no-persist", action="store_true",
                     help="não grava cluster_municipio/regra_associacao de volta no Postgres")
+    p.add_argument("--ano", type=int, default=None,
+                    help="restringe a clusterização/regras a um único ano (recomendado - "
+                         "ver nota em rodar_pipeline sobre o dataset completo de 20 anos "
+                         "não caber na memória disponível do container do Airflow). "
+                         "Omitido: todos os anos juntos.")
     return p.parse_args()
 
 
-def carregar_dataset(conn) -> pd.DataFrame:
+def carregar_dataset(conn, ano=None) -> pd.DataFrame:
     colunas_sql = ", ".join(f"dc.{col}" for col, _ in COLUNAS_CLASSIFICACAO)
+    filtro_ano = "WHERE dt.ano = %(ano)s" if ano is not None else ""
     query = f"""
         SELECT
             fa.id_fato_acidente,
@@ -140,16 +152,27 @@ def carregar_dataset(conn) -> pd.DataFrame:
         JOIN dim_local dl ON dl.id_dim_local = fa.id_dim_local
         JOIN dim_tempo dt ON dt.id_dim_tempo = fa.id_dim_tempo
         JOIN dim_classificacao_acidente dc ON dc.id_dim_classificacao = fa.id_dim_classificacao
+        {filtro_ano}
     """
-    df = pd.read_sql(query, conn)
+    df = pd.read_sql(query, conn, params={"ano": ano} if ano is not None else None)
     df["municipio_chave"] = df["nome_municipio"] + " - " + df["sigla_uf"]
     return df
 
 
-def carregar_tracado_via(conn) -> dict:
+def carregar_tracado_via(conn, ano=None) -> dict:
     """fato_acidente_tracado_via é uma bridge table (0 a N linhas por
-    ocorrência) - carregada à parte do resto das classificações."""
-    df = pd.read_sql("SELECT id_fato_acidente, valor FROM fato_acidente_tracado_via", conn)
+    ocorrência) - carregada à parte do resto das classificações. Mesmo
+    filtro de `ano` de carregar_dataset (via join com fato_acidentes/
+    dim_tempo), pra não carregar os 20 anos quando só 1 está sendo usado."""
+    filtro_ano = "WHERE dt.ano = %(ano)s" if ano is not None else ""
+    query = f"""
+        SELECT ftv.id_fato_acidente, ftv.valor
+        FROM fato_acidente_tracado_via ftv
+        JOIN fato_acidentes fa ON fa.id_fato_acidente = ftv.id_fato_acidente
+        JOIN dim_tempo dt ON dt.id_dim_tempo = fa.id_dim_tempo
+        {filtro_ano}
+    """
+    df = pd.read_sql(query, conn, params={"ano": ano} if ano is not None else None)
     mapa = {}
     for id_fato, valor in df.itertuples(index=False):
         mapa.setdefault(id_fato, []).append(valor)
@@ -266,7 +289,15 @@ def construir_cestas(df: pd.DataFrame, mapa_cluster: pd.Series, mapa_tracado_via
     return df[["cluster", "cesta"]]
 
 
-def regras_por_cluster(cestas: pd.DataFrame, min_support, min_lift, min_confidence, top_n) -> pd.DataFrame:
+def regras_por_cluster(cestas: pd.DataFrame, min_support, min_lift, min_confidence, top_n, max_itemset_len=2) -> pd.DataFrame:
+    """`max_itemset_len` default 2 (1 antecedente -> 1 consequente): o Apriori
+    encontra closure por especialização - uma vez que um par forte existe
+    (ex.: causa=X -> tipo_acidente=Y), toda SUPERSET dele (+1 item de
+    contexto, ex. +fase_dia, +clima, +tipo_pista) também passa o filtro de
+    suporte/lift, inundando o "top N por lift" com N variações do mesmo
+    achado em vez de N achados diferentes - e itemsets grandes viram texto
+    longo demais pra uma tabela de dashboard. Com max_itemset_len=2 o Apriori
+    nem gera esses itemsets maiores."""
     resultados = []
     for cluster, grupo in cestas.groupby("cluster"):
         transacoes = grupo["cesta"].tolist()
@@ -277,7 +308,15 @@ def regras_por_cluster(cestas: pd.DataFrame, min_support, min_lift, min_confiden
         te_ary = te.fit(transacoes).transform(transacoes)
         df_onehot = pd.DataFrame(te_ary, columns=te.columns_)
 
-        itemsets = apriori(df_onehot, min_support=min_support, use_colnames=True)
+        # low_memory=True: evita o caminho padrão do mlxtend, que monta um
+        # array denso 3D (linhas x combinações x tamanho do itemset) pra
+        # avaliar todos os itemsets de um tamanho de uma vez - com ~1M+
+        # transações por cluster (dataset completo, 20 anos) isso já passa de
+        # alguns GB só pra itemsets de tamanho 2 e causa OOM. Com
+        # low_memory=True o mlxtend usa um gerador que avalia uma combinação
+        # por vez (3-6x mais lento, mesmo resultado estatístico).
+        itemsets = apriori(df_onehot, min_support=min_support, use_colnames=True,
+                            low_memory=True, max_len=max_itemset_len)
         if itemsets.empty:
             continue
 
@@ -285,6 +324,20 @@ def regras_por_cluster(cestas: pd.DataFrame, min_support, min_lift, min_confiden
         regras = regras[regras["confidence"] >= min_confidence]
         if regras.empty:
             continue
+
+        # lift é simétrico (lift(A->C) == lift(C->A), mesma fórmula
+        # support(A∪C)/(support(A)*support(C))) - então pra todo par (A,C)
+        # que passa o filtro, a direção inversa (C,A) também passa, com o
+        # MESMO lift. Sem este filtro, metade do "top N por lift" vira o
+        # mesmo par antecedente/consequente invertido (mesma relação
+        # mostrada duas vezes), desperdiçando espaço que podia mostrar
+        # relações diferentes. Mantém só a direção mais forte de cada par
+        # (maior confiança - a leitura mais "acionável" das duas).
+        regras = regras.copy()
+        regras["par_nao_direcionado"] = regras.apply(
+            lambda r: frozenset([r["antecedents"], r["consequents"]]), axis=1
+        )
+        regras = regras.sort_values("confidence", ascending=False).drop_duplicates("par_nao_direcionado")
 
         regras = regras.sort_values("lift", ascending=False).head(top_n).copy()
         regras["cluster"] = cluster
@@ -338,19 +391,29 @@ def persistir_no_banco(conn, perfil: pd.DataFrame, regras: pd.DataFrame):
 def rodar_pipeline(
     host="localhost", port=5432, dbname="dw", user="postgres", password="postgres",
     min_ocorrencias=30, k=None, min_support=0.05, min_lift=1.1, min_confidence=0.3,
-    top_n_rules=15, output_dir=None, persist=True,
+    max_itemset_len=2, top_n_rules=15, output_dir=None, persist=True, ano=None,
 ):
     """Roda o pipeline completo (carrega -> perfila -> clusteriza -> regras de
     associação -> grava). Função reutilizável por trás do CLI (`main`) e da
-    DAG do Airflow (`ml_clusterizacao_regras_associacao`)."""
+    DAG do Airflow (`ml_clusterizacao_regras_associacao`).
+
+    `ano`: restringe tudo a um único ano - recomendado. O Apriori
+    (`regras_por_cluster`) monta, por cluster, uma matriz one-hot densa
+    (ocorrências x itens de classificação) antes de buscar os itemsets
+    frequentes; com os 20 anos juntos (~2,2M ocorrências) isso soma com o
+    resto do processo Python (pandas/sklearn/mlxtend já carregados) mais do
+    que a memória disponível no container do Airflow, e a task morre com
+    SIGKILL (OOM) sem traceback. Processar um ano por vez (~100-150k
+    ocorrências) é o bastante pra caber confortavelmente, e como efeito
+    colateral permite comparar clusters/regras entre anos."""
     output_dir = Path(output_dir) if output_dir else SCRIPT_DIR / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     conn = psycopg2.connect(host=host, port=port, dbname=dbname, user=user, password=password)
     try:
-        print("Carregando fato_acidentes + dimensões...")
-        df = carregar_dataset(conn)
-        mapa_tracado_via = carregar_tracado_via(conn)
+        print(f"Carregando fato_acidentes + dimensões{f' (ano={ano})' if ano else ' (todos os anos)'}...")
+        df = carregar_dataset(conn, ano=ano)
+        mapa_tracado_via = carregar_tracado_via(conn, ano=ano)
         print(f"  {len(df)} ocorrências, {df['municipio_chave'].nunique()} municípios distintos, "
               f"{len(mapa_tracado_via)} com traçado de via registrado")
 
@@ -372,7 +435,7 @@ def rodar_pipeline(
         cestas = construir_cestas(df, perfil["cluster"], mapa_tracado_via)
 
         print("Aplicando Apriori + regras de associação por cluster...")
-        regras = regras_por_cluster(cestas, min_support, min_lift, min_confidence, top_n_rules)
+        regras = regras_por_cluster(cestas, min_support, min_lift, min_confidence, top_n_rules, max_itemset_len)
         regras.to_csv(output_dir / "regras_associacao_por_cluster.csv", index=False)
         print(f"  {len(regras)} regras geradas no total")
         if not regras.empty:
@@ -395,8 +458,8 @@ def main():
     rodar_pipeline(
         host=args.host, port=args.port, dbname=args.dbname, user=args.user, password=args.password,
         min_ocorrencias=args.min_ocorrencias, k=args.k, min_support=args.min_support,
-        min_lift=args.min_lift, min_confidence=args.min_confidence, top_n_rules=args.top_n_rules,
-        output_dir=args.output_dir, persist=not args.no_persist,
+        min_lift=args.min_lift, min_confidence=args.min_confidence, max_itemset_len=args.max_itemset_len,
+        top_n_rules=args.top_n_rules, output_dir=args.output_dir, persist=not args.no_persist, ano=args.ano,
     )
 
 

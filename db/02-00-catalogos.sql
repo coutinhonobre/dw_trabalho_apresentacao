@@ -586601,7 +586601,7 @@ INSERT INTO local_acidente (id, municipio_id, localizacao_id) VALUES
 
 SELECT setval('local_acidente_id_seq', 368589);
 
--- causa_acidente_valido (101 valores distintos)
+-- causa_acidente_valido (96 valores distintos)
 INSERT INTO causa_acidente_valido (valor) VALUES
     ('Acessar a via sem observar a presença dos outros veículos'),
     ('Acesso irregular'),
@@ -586628,7 +586628,6 @@ INSERT INTO causa_acidente_valido (valor) VALUES
     ('Defeito Mecânico no Veículo'),
     ('Defeito mecânico em veículo'),
     ('Defeito na Via'),
-    ('Defeito na via'),
     ('Deficiência do Sistema de Iluminação/Sinalização'),
     ('Deficiência ou não Acionamento do Sistema de Iluminação/Sinalização do Veículo'),
     ('Deixar de acionar o farol da motocicleta (ou similar)'),
@@ -586657,7 +586656,6 @@ INSERT INTO causa_acidente_valido (valor) VALUES
     ('Ingestão de Substâncias Psicoativas'),
     ('Ingestão de substâncias psicoativas pelo condutor'),
     ('Ingestão de Álcool'),
-    ('Ingestão de álcool'),
     ('Ingestão de álcool e/ou substâncias psicoativas pelo pedestre'),
     ('Ingestão de álcool ou de substâncias psicoativas pelo pedestre'),
     ('Ingestão de álcool pelo condutor'),
@@ -586697,19 +586695,15 @@ INSERT INTO causa_acidente_valido (valor) VALUES
     ('Transitar na calçada'),
     ('Transitar na contramão'),
     ('Transitar no Acostamento'),
-    ('Transitar no acostamento'),
     ('Transtornos Mentais (exceto suicidio)'),
     ('Ultrapassagem Indevida'),
-    ('Ultrapassagem indevida'),
     ('Velocidade Incompatível'),
-    ('Velocidade incompatível'),
     ('Área urbana sem a presença de local apropriado para a travessia de pedestres');
 
--- tipo_acidente_valido (31 valores distintos)
+-- tipo_acidente_valido (27 valores distintos)
 INSERT INTO tipo_acidente_valido (valor) VALUES
     ('Atropelamento de Animal'),
     ('Atropelamento de Pedestre'),
-    ('Atropelamento de animal'),
     ('Atropelamento de pessoa'),
     ('Capotamento'),
     ('Colisão Transversal'),
@@ -586723,12 +586717,9 @@ INSERT INTO tipo_acidente_valido (valor) VALUES
     ('Colisão lateral'),
     ('Colisão lateral mesmo sentido'),
     ('Colisão lateral sentido oposto'),
-    ('Colisão transversal'),
     ('Colisão traseira'),
     ('Danos Eventuais'),
-    ('Danos eventuais'),
     ('Derramamento de Carga'),
-    ('Derramamento de carga'),
     ('Engavetamento'),
     ('Eventos atípicos'),
     ('Incêndio'),
@@ -586747,12 +586738,11 @@ INSERT INTO classificacao_acidente_valido (valor) VALUES
     ('NA'),
     ('Sem Vítimas');
 
--- fase_dia_valido (5 valores distintos)
+-- fase_dia_valido (4 valores distintos)
 INSERT INTO fase_dia_valido (valor) VALUES
     ('Amanhecer'),
     ('Anoitecer'),
     ('Plena Noite'),
-    ('Plena noite'),
     ('Pleno dia');
 
 -- sentido_via_valido (3 valores distintos)
@@ -586761,18 +586751,15 @@ INSERT INTO sentido_via_valido (valor) VALUES
     ('Decrescente'),
     ('Não Informado');
 
--- condicao_metereologica_valido (13 valores distintos)
+-- condicao_metereologica_valido (10 valores distintos)
 INSERT INTO condicao_metereologica_valido (valor) VALUES
-    ('Ceu Claro'),
     ('Chuva'),
     ('Céu Claro'),
     ('Garoa/Chuvisco'),
     ('Granizo'),
-    ('Ignorada'),
     ('Ignorado'),
     ('Neve'),
     ('Nevoeiro/Neblina'),
-    ('Nevoeiro/neblina'),
     ('Nublado'),
     ('Sol'),
     ('Vento');

@@ -12,6 +12,11 @@
 
 CREATE SCHEMA staging;
 
+-- As 8 classificações de valor único vêm achatadas direto nesta tabela
+-- (mesma decomposição do OLTP/corporativo - ver nota "REMODELAGEM" em
+-- dw/dw_postgres.sql), não numa staging atributo-valor separada: já chegam
+-- como colunas do próprio `acidentes`/`corporativo.ocorrencias`, então não há
+-- pivot a fazer antes de gravar.
 CREATE TABLE staging.stg_acidentes (
     id           INTEGER,
     data         DATE,
@@ -21,7 +26,16 @@ CREATE TABLE staging.stg_acidentes (
     municipio_nome VARCHAR(60),
     rodovia_numero SMALLINT,
     km           NUMERIC(6,1),
-    veiculos     SMALLINT
+    veiculos     SMALLINT,
+
+    causa_acidente          VARCHAR(100),
+    tipo_acidente           VARCHAR(60),
+    classificacao_acidente  VARCHAR(30),
+    fase_dia                VARCHAR(20),
+    sentido_via              VARCHAR(20),
+    condicao_metereologica  VARCHAR(30),
+    tipo_pista               VARCHAR(20),
+    uso_solo                VARCHAR(20)
 );
 
 CREATE TABLE staging.stg_acidente_vitima (
@@ -30,14 +44,9 @@ CREATE TABLE staging.stg_acidente_vitima (
     quantidade  SMALLINT
 );
 
-CREATE TABLE staging.stg_acidente_atributo (
-    acidente_id   INTEGER,
-    tipo_atributo VARCHAR(30),
-    valor         VARCHAR(100)
-);
-
 -- tracado_via é multivalorado desde 2017 (ver nota "DESCOBERTA" em
--- db/01_schema.sql) - staging própria, à parte de stg_acidente_atributo.
+-- db/01_schema.sql) - staging própria, à parte das 8 classificações
+-- escalares acima.
 CREATE TABLE staging.stg_acidente_tracado_via (
     acidente_id INTEGER,
     valor       VARCHAR(30)

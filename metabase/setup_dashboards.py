@@ -62,6 +62,42 @@ MES_CASE = """CASE dt.mes
         WHEN 10 THEN 'Outubro' WHEN 11 THEN 'Novembro' WHEN 12 THEN 'Dezembro'
     END"""
 
+# "Cluster 0"/"Cluster 1" não diz nada pra quem lê o painel, e o número que o
+# KMeans atribui a cada cluster é arbitrário (pode trocar numa próxima
+# rodada da DAG ml_clusterizacao_regras_associacao, nada garante que o
+# cluster de maior letalidade continue sendo o "0"). Em vez de hardcodar um
+# nome por número, calcula o rótulo toda vez que o card roda, ranqueando os
+# clusters de cluster_municipio pela letalidade média (a métrica de risco
+# mais direta) - sempre consistente com os dados atuais, mesmo se o próximo
+# treino do KMeans inverter os números. CTE reaproveitada pelos 3 cards de
+# ML (join por `cluster`, válido porque cluster_municipio/regra_associacao
+# são gravados juntos no mesmo rodar_pipeline - ver
+# ml/clusterizacao_regras_associacao.py:persistir_no_banco).
+ROTULO_CLUSTER_CTE = """
+WITH cluster_base AS (
+    SELECT cluster, avg(taxa_letalidade) AS letal_media
+    FROM cluster_municipio
+    GROUP BY cluster
+),
+cluster_ranked AS (
+    SELECT cluster, letal_media,
+           row_number() OVER (ORDER BY letal_media DESC) AS pos,
+           count(*) OVER () AS total
+    FROM cluster_base
+),
+cluster_rotulo AS (
+    SELECT cluster, pos,
+           CASE
+               WHEN total = 1 THEN 'Único grupo'
+               WHEN total = 2 AND pos = 1 THEN 'Maior Letalidade'
+               WHEN total = 2 AND pos = 2 THEN 'Menor Letalidade'
+               WHEN pos = 1 THEN 'Letalidade Mais Alta'
+               WHEN pos = total THEN 'Letalidade Mais Baixa'
+               ELSE 'Letalidade Intermediária'
+           END AS rotulo
+    FROM cluster_ranked
+)"""
+
 # ----------------------------------------------------------------
 # Filtros do dashboard (Período + UF): cada um é uma variável SQL nativa
 # opcional ([[ ... ]] some se o parâmetro não for preenchido) mais um
@@ -69,6 +105,47 @@ MES_CASE = """CASE dt.mes
 # via parameter_mappings. Testado ao vivo contra um Metabase real antes de
 # aplicar nos 15 cards - ver histórico do projeto.
 # ----------------------------------------------------------------
+
+# Paleta do painel (tema "problemática de acidentes" - abre com vermelho),
+# validada com a skill de dataviz (rotação do palette default pra abrir em
+# vermelho mantendo os 7 pares adjacentes já validados + 1 par novo
+# vermelho-azul, checado à parte - CVD/contraste/normal-vision todos PASS
+# nos dois modos, ver histórico do projeto). OSS Metabase não deixa recolorir
+# globalmente (`application-colors` é feature paga "whitelabel" - testado,
+# API recusa: "recurso :whitelabel não está disponível"), então aplicado por
+# card via `series_settings`, que funciona na versão grátis.
+COR_VERMELHO = "#e34948"
+COR_LARANJA = "#eb6834"
+COR_AZUL = "#2a78d6"
+COR_AGUA = "#1baf7a"
+COR_AMARELO = "#eda100"
+COR_MAGENTA = "#e87ba4"
+COR_VERDE = "#008300"
+COR_VIOLETA = "#4a3aa7"
+
+
+def cor_serie(nome_coluna, cor):
+    """visualization_settings pra pintar a única série de um card bar/row/line
+    de `nome_coluna` (a métrica) - mesma cor em todo card que mostra a mesma
+    métrica (ex. "ocorrencias" sempre vermelho), pra reforçar identidade
+    visual em vez de cor arbitrária por gráfico."""
+    return {"series_settings": {nome_coluna: {"color": cor}}}
+
+
+# Cores por rótulo de cluster_rotulo (ROTULO_CLUSTER_CTE acima) - vermelho/
+# azul é o par diverging validado pela skill de dataviz (polos quente/frio
+# que leem como opostos, em vez do clássico vermelho/verde, ruim pra
+# daltonismo) - aqui faz sentido de verdade porque os rótulos SÃO uma
+# polaridade (mais x menos letal), não categorias arbitrárias.
+COR_ROTULO_CLUSTER = {
+    "Único grupo": COR_VERMELHO,
+    "Maior Letalidade": COR_VERMELHO,
+    "Menor Letalidade": COR_AZUL,
+    "Letalidade Mais Alta": COR_VERMELHO,
+    "Letalidade Mais Baixa": COR_AZUL,
+    "Letalidade Intermediária": COR_AMARELO,
+}
+
 
 FILTER_PERIODO_SQL = "[[AND dt.data >= {{data_inicio}}]] [[AND dt.data <= {{data_fim}}]]"
 FILTER_UF_SQL = "[[AND dl.sigla_uf = {{uf}}]]"
@@ -304,6 +381,16 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
             "map.region": "brazil_states",
             "map.metric_column": "obitos",
             "map.dimension_column": "uf",
+            # Rampa sequencial vermelha (claro->escuro = menos->mais óbitos) -
+            # chave certa é "map.colors" (array), não "color" (singular, que
+            # a API aceita sem erro mas o renderer não lê - confirmado lendo
+            # o bundle map-renderer.js do próprio Metabase, já que esse
+            # setting não aparece documentado em lugar nenhum). Validado como
+            # rampa sequencial pela skill de dataviz (monotonicidade de
+            # luminosidade + mesma matiz) - o degrau mais claro quase sumir
+            # no branco é esperado aqui (zero óbitos), diferente de uma
+            # rampa ordinal.
+            "map.colors": ["#fde0df", "#f2a6a3", "#e34948", "#a32f2e", "#6b1f1e"],
         }, FILTERS_PERIODO,
     )
     cards["top10_uf_ocorrencias"] = make_card(
@@ -318,7 +405,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         ORDER BY ocorrencias DESC
         LIMIT 10
         """,
-        "row", {"graph.dimensions": ["uf"], "graph.metrics": ["ocorrencias"]}, FILTERS_PERIODO,
+        "row", {"graph.dimensions": ["uf"], "graph.metrics": ["ocorrencias"], **cor_serie("ocorrencias", COR_LARANJA)}, FILTERS_PERIODO,
     )
 
     cards["ocorrencias_por_mes"] = make_card(
@@ -335,6 +422,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         "line", {
             "graph.dimensions": ["mes"], "graph.metrics": ["ocorrencias"],
             "graph.x_axis.scale": "ordinal",
+            **cor_serie("ocorrencias", COR_VERMELHO),
         }, FILTERS_PERIODO_UF,
     )
     cards["ocorrencias_por_dia_semana"] = make_card(
@@ -351,6 +439,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         "bar", {
             "graph.dimensions": ["dia_semana"], "graph.metrics": ["ocorrencias"],
             "graph.x_axis.scale": "ordinal",
+            **cor_serie("ocorrencias", COR_VERMELHO),
         }, FILTERS_PERIODO_UF,
     )
 
@@ -367,7 +456,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         ORDER BY ocorrencias DESC
         LIMIT 10
         """,
-        "row", {"graph.dimensions": ["causa"], "graph.metrics": ["ocorrencias"]}, FILTERS_PERIODO_UF,
+        "row", {"graph.dimensions": ["causa"], "graph.metrics": ["ocorrencias"], **cor_serie("ocorrencias", COR_VERMELHO)}, FILTERS_PERIODO_UF,
     )
     cards["condicao_metereologica"] = make_card(
         mb, database_id, collection_id, "Acidentes por Condição Meteorológica",
@@ -381,7 +470,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         GROUP BY dc.condicao_metereologica
         ORDER BY ocorrencias DESC
         """,
-        "bar", {"graph.dimensions": ["condicao"], "graph.metrics": ["ocorrencias"]}, FILTERS_PERIODO_UF,
+        "bar", {"graph.dimensions": ["condicao"], "graph.metrics": ["ocorrencias"], **cor_serie("ocorrencias", COR_AMARELO)}, FILTERS_PERIODO_UF,
     )
     cards["fase_dia"] = make_card(
         mb, database_id, collection_id, "Acidentes por Fase do Dia",
@@ -395,7 +484,10 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         GROUP BY dc.fase_dia
         ORDER BY ocorrencias DESC
         """,
-        "pie", {"pie.dimension": "fase", "pie.metric": "ocorrencias"}, FILTERS_PERIODO_UF,
+        "pie", {
+            "pie.dimension": "fase", "pie.metric": "ocorrencias",
+            "pie.colors": {"Pleno dia": COR_AMARELO, "Plena Noite": COR_VIOLETA, "Amanhecer": COR_LARANJA, "Anoitecer": COR_MAGENTA},
+        }, FILTERS_PERIODO_UF,
     )
 
     cards["top_rodovias_obitos"] = make_card(
@@ -410,7 +502,7 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         ORDER BY obitos DESC
         LIMIT 10
         """,
-        "row", {"graph.dimensions": ["br"], "graph.metrics": ["obitos"]}, FILTERS_PERIODO_UF,
+        "row", {"graph.dimensions": ["br"], "graph.metrics": ["obitos"], **cor_serie("obitos", COR_VERMELHO)}, FILTERS_PERIODO_UF,
     )
     cards["tipo_pista"] = make_card(
         mb, database_id, collection_id, "Acidentes por Tipo de Pista",
@@ -424,7 +516,10 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
         GROUP BY dc.tipo_pista
         ORDER BY ocorrencias DESC
         """,
-        "pie", {"pie.dimension": "tipo", "pie.metric": "ocorrencias"}, FILTERS_PERIODO_UF,
+        "pie", {
+            "pie.dimension": "tipo", "pie.metric": "ocorrencias",
+            "pie.colors": {"Simples": COR_VERMELHO, "Dupla": COR_AZUL, "Múltipla": COR_AGUA, "Não informado": COR_MAGENTA},
+        }, FILTERS_PERIODO_UF,
     )
 
     cards["resumo_uf"] = make_card(
@@ -453,47 +548,77 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
     # Cards aparecem vazios/com erro até o DAG rodar ao menos uma vez.
     cards["municipios_por_cluster"] = make_card(
         mb, database_id, collection_id, "Municípios por Cluster",
-        """
-        SELECT cluster, count(*) AS municipios
-        FROM cluster_municipio
-        GROUP BY cluster
-        ORDER BY cluster
+        ROTULO_CLUSTER_CTE + """
+        SELECT cr.rotulo, count(*) AS municipios
+        FROM cluster_municipio cm
+        JOIN cluster_rotulo cr ON cr.cluster = cm.cluster
+        GROUP BY cr.rotulo, cr.pos
+        ORDER BY cr.pos
         """,
-        "bar", {"graph.dimensions": ["cluster"], "graph.metrics": ["municipios"]}, [],
+        # Só 1 dimensão (rotulo) + 1 métrica - Metabase pinta esse tipo de bar
+        # chart com UMA cor pra série inteira (não por categoria do eixo x,
+        # diferente de pie chart - confirmado nos outros gráficos de barra
+        # single-dimension do painel, todos com barras na mesma cor), então
+        # aqui é cor_serie("municipios", ...) mesmo, não COR_ROTULO_CLUSTER
+        # (essa só se aplica onde "rotulo" é de fato uma 2a dimensão/série,
+        # como em "perfil_risco_cluster" abaixo).
+        "bar", {"graph.dimensions": ["rotulo"], "graph.metrics": ["municipios"], **cor_serie("municipios", COR_VIOLETA)}, [],
     )
+    # Tabela larga (11 colunas decimais cru, 2 linhas) cortava na tela e era
+    # difícil de comparar os clusters de cabeça - virou gráfico de barras
+    # agrupado (1 barra por cluster, por métrica), só com as proporções
+    # (0-1, mesma escala - por isso veiculos_medio/municipios/ocorrencias
+    # ficaram de fora: unidades diferentes, não cabem no mesmo eixo).
+    # round(...*100,1): mesmo padrão _pct das outras cards do painel
+    # (ex. letalidade_pct em "Resumo por UF"), mas aqui como 2a dimensão
+    # (metrica) em vez de uma coluna por métrica.
     cards["perfil_risco_cluster"] = make_card(
-        mb, database_id, collection_id, "Perfil de Risco por Cluster",
-        """
-        SELECT
-            cluster,
-            count(*) AS municipios,
-            sum(n_ocorrencias) AS ocorrencias,
-            round(avg(taxa_letalidade), 4) AS taxa_letalidade_media,
-            round(avg(taxa_feridos_graves), 4) AS taxa_feridos_graves_media,
-            round(avg(veiculos_medio), 2) AS veiculos_medio,
-            round(avg(prop_fim_semana), 4) AS prop_fim_semana,
-            round(avg(prop_noite), 4) AS prop_noite,
-            round(avg(prop_chuva), 4) AS prop_chuva,
-            round(avg(prop_pista_simples), 4) AS prop_pista_simples,
-            round(avg(concentracao_causa), 4) AS concentracao_causa
-        FROM cluster_municipio
-        GROUP BY cluster
-        ORDER BY cluster
+        mb, database_id, collection_id, "Perfil de Risco por Cluster (%)",
+        ROTULO_CLUSTER_CTE + """
+        SELECT x.metrica, cr.rotulo, x.valor_pct
+        FROM (
+            SELECT 1 AS ordem, 'Letalidade' AS metrica, cluster, round(100.0 * avg(taxa_letalidade), 1) AS valor_pct FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 2, 'Feridos Graves', cluster, round(100.0 * avg(taxa_feridos_graves), 1) FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 3, 'Fim de Semana', cluster, round(100.0 * avg(prop_fim_semana), 1) FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 4, 'Período Noturno', cluster, round(100.0 * avg(prop_noite), 1) FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 5, 'Chuva', cluster, round(100.0 * avg(prop_chuva), 1) FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 6, 'Pista Simples', cluster, round(100.0 * avg(prop_pista_simples), 1) FROM cluster_municipio GROUP BY cluster
+            UNION ALL
+            SELECT 7, 'Concentração de Causa', cluster, round(100.0 * avg(concentracao_causa), 1) FROM cluster_municipio GROUP BY cluster
+        ) x
+        JOIN cluster_rotulo cr ON cr.cluster = x.cluster
+        ORDER BY x.ordem, cr.pos
         """,
-        "table", {}, [],
+        # 2 dimensões (metrica + rotulo) - aqui "rotulo" é de fato a 2a série
+        # (legenda/breakout) do gráfico agrupado, então series_settings por
+        # VALOR de rotulo funciona (diferente de "municipios_por_cluster"
+        # acima, que só tem 1 dimensão).
+        "bar", {
+            "graph.dimensions": ["metrica", "rotulo"], "graph.metrics": ["valor_pct"],
+            "series_settings": {k: {"color": v} for k, v in COR_ROTULO_CLUSTER.items()},
+        }, [],
     )
     cards["top_regras_por_cluster"] = make_card(
         mb, database_id, collection_id, "Top Regras de Associação por Cluster",
-        """
-        SELECT cluster, antecedente, consequente, suporte, confianca, lift
+        ROTULO_CLUSTER_CTE + """
+        SELECT cr.rotulo, ra.antecedente, ra.consequente, ra.suporte_pct, ra.confianca_pct, ra.lift
         FROM (
             SELECT
-                cluster, antecedente, consequente, suporte, confianca, lift,
+                cluster, antecedente, consequente,
+                round(suporte * 100, 1) AS suporte_pct,
+                round(confianca * 100, 1) AS confianca_pct,
+                round(lift, 2) AS lift,
                 row_number() OVER (PARTITION BY cluster ORDER BY lift DESC) AS posicao
             FROM regra_associacao
-        ) ranqueadas
-        WHERE posicao <= 5
-        ORDER BY cluster, lift DESC
+        ) ra
+        JOIN cluster_rotulo cr ON cr.cluster = ra.cluster
+        WHERE ra.posicao <= 5
+        ORDER BY cr.pos, ra.lift DESC
         """,
         "table", {}, [],
     )

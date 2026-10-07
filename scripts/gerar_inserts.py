@@ -55,6 +55,43 @@ COLUNAS_CLASSIFICACAO = [
     "sentido_via", "condicao_metereologica", "tipo_pista", "uso_solo",
 ]
 
+# A PRF não manteve maiúscula/acento consistentes nesses 4 campos entre anos
+# do CSV (ex.: "Ceu Claro" num ano, "Céu Claro" noutro) - sem normalizar, viram
+# duas linhas distintas no catálogo (mesmo significado, strings diferentes),
+# diluindo contagens/regras de associação e duplicando categoria em gráfico.
+# Mapeamento levantado empírico comparando valores após dobrar
+# maiúscula/acento (ver histórico do projeto) - lado esquerdo é descartado em
+# favor do direito.
+NORMALIZACAO_CLASSIFICACAO = {
+    "causa_acidente": {
+        "Ingestão de álcool": "Ingestão de Álcool",
+        "Transitar no acostamento": "Transitar no Acostamento",
+        "Defeito na via": "Defeito na Via",
+        "Velocidade incompatível": "Velocidade Incompatível",
+        "Ultrapassagem indevida": "Ultrapassagem Indevida",
+    },
+    "tipo_acidente": {
+        "Danos eventuais": "Danos Eventuais",
+        "Atropelamento de animal": "Atropelamento de Animal",
+        "Derramamento de carga": "Derramamento de Carga",
+        "Colisão transversal": "Colisão Transversal",
+    },
+    "fase_dia": {
+        "Plena noite": "Plena Noite",
+    },
+    "condicao_metereologica": {
+        "Ceu Claro": "Céu Claro",
+        "Ignorada": "Ignorado",
+        "Nevoeiro/neblina": "Nevoeiro/Neblina",
+    },
+}
+
+
+def normalizar_classificacao(coluna, valor):
+    if valor is None:
+        return None
+    return NORMALIZACAO_CLASSIFICACAO.get(coluna, {}).get(valor, valor)
+
 
 def split_tracado_via(valor):
     """"Reta;Curva;Viaduto" -> ["Reta", "Curva", "Viaduto"], sem duplicatas e
@@ -183,7 +220,7 @@ def main():
             localizacoes.add((int(br), km))
 
         for coluna in COLUNAS_CLASSIFICACAO:
-            valor = null_if(row[coluna])
+            valor = normalizar_classificacao(coluna, null_if(row[coluna]))
             if valor:
                 valores_validos[coluna].add(valor)
 
@@ -338,7 +375,7 @@ def main():
             row["veiculos"],
         ]
         for coluna in COLUNAS_CLASSIFICACAO:
-            valor = null_if(row[coluna])
+            valor = normalizar_classificacao(coluna, null_if(row[coluna]))
             values.append(sql_str(valor) if valor else "NULL")
         bucket["acidentes"].append("    (" + ", ".join(values) + ")")
 

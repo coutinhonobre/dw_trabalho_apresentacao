@@ -128,12 +128,26 @@ particularidade do OLTP:
 - **Tempo** — `tempos` (calendário gerado uma vez via `generate_series`,
   2000-2035; referência compartilhada, `ocorrencias` guarda a data via FK)
 - **Geografia e Via** — `ufs`, `municipios`, `rodovias`, `localizacoes`, `locais_acidente`
-- **Classificação do Acidente** — `tipos_classificacao`, `classificacoes_validas`
-  (catálogo atributo-valor, copiado do OLTP) + `tracados_via_validos`,
-  `ocorrencia_tracado_via` (9a classificação, multivalorada desde 2017)
+- **Classificação do Acidente** — 8 catálogos dedicados (`causas_acidente`,
+  `tipos_acidente`, ..., `usos_solo`), um por classificação de valor único,
+  espelhando a mesma decomposição do OLTP (ver nota "REMODELAGEM" abaixo) +
+  `tracados_via_validos`, `ocorrencia_tracado_via` (9a classificação,
+  multivalorada desde 2017)
 - **Vítimas** — `categorias_vitima` (catálogo, copiado do OLTP)
-- **Ocorrências** — `ocorrencias` (fato operacional, cabeçalho enxuto),
-  `ocorrencia_vitima`, `ocorrencia_classificacao`
+- **Ocorrências** — `ocorrencias` (fato operacional, cabeçalho enxuto + as 8
+  classificações como colunas próprias, cada uma FK pro catálogo certo),
+  `ocorrencia_vitima`, `ocorrencia_tracado_via`
+
+**REMODELAGEM**: a 1a versão desta camada mantinha as 8 classificações como
+atributo-valor genérico (EAV: `tipos_classificacao`/`classificacoes_validas`/
+`ocorrencia_classificacao`), espelhando o EAV que o OLTP tinha então. Quando o
+OLTP trocou esse EAV por colunas tipadas (ver seção "Camada 1" acima), o
+motivo documentado lá - antipadrão quando o conjunto de atributos é fixo e
+conhecido de antemão - vale igual aqui: manter EAV no corporativo depois que
+a fonte deixou de ser EAV só reintroduziria a mesma perda de tipagem/`NOT
+NULL`, sem ganho de integração em troca. Remodelado pra 8 colunas tipadas,
+cada uma FK pro catálogo dedicado certo, mesma decomposição do OLTP. Ver nota
+completa no cabeçalho de `dw/dw_postgres.sql`.
 
 Integrado: `ocorrencias` carrega `sistema_origem` (fixo em `'PRF-DATATRAN'`
 hoje) + `id_ocorrencia_origem` (chave natural do CSV) ao lado da chave
@@ -142,9 +156,9 @@ substituta corporativa (sequência própria) — isso é o que permite empilhar
 ano após ano sem colidir PKs nem reprocessar histórico, mesmo havendo hoje uma
 única fonte real.
 
-Não-volátil / variante no tempo: `ocorrencias`/`ocorrencia_vitima`/
-`ocorrencia_classificacao` são append-only — uma ocorrência carregada nunca
-sofre `UPDATE`. Diferente do projeto de referência que inspirou esta
+Não-volátil / variante no tempo: `ocorrencias`/`ocorrencia_vitima` são
+append-only — uma ocorrência carregada nunca sofre `UPDATE`. Diferente do
+projeto de referência que inspirou esta
 estrutura (Mercearia+Northwind, onde cliente/funcionário/produto exigem
 histórico versionado via SCD2), aqui **nenhuma** tabela de apoio precisa de
 `upsert_historizado`: nome de município, sigla de UF etc. não mudam no
@@ -201,11 +215,16 @@ propositalmente fora do `docker-entrypoint-initdb.d`:
 docker exec -i datatran_postgres psql -U postgres -d dw < dw/metadados_seed_postgres.sql
 ```
 
-O seed documenta 14 tabelas / 46 campos do `datatran`, 18 tabelas (14
-corporativo + 4 data mart) / 111 campos do DW e 76 linhas de linhagem —
-incluindo os campos sem origem transacional, atribuídos pelo próprio ETL
-(`sistema_origem` fixo, sentinela `'Não informado'`, totais recalculados),
-ancorados em um `dado_externo` de "Regras de Negócio do ETL".
+O seed documenta 17 tabelas / 41 campos do `datatran`, 21 tabelas (corporativo
++ data mart) / 109 campos do DW e 72 linhas de linhagem — incluindo os campos
+sem origem transacional, atribuídos pelo próprio ETL (`sistema_origem` fixo,
+sentinela `'Não informado'`, totais recalculados), ancorados em um
+`dado_externo` de "Regras de Negócio do ETL". Atualizado junto com a
+remodelagem do EAV→colunas tipadas (seções "Camada 1"/"Camada 2" acima) - as
+tabelas antigas (`tipo_atributo`, `atributo_valor_valido`, `acidente_atributo`
+no OLTP; `tipos_classificacao`/`classificacoes_validas`/
+`ocorrencia_classificacao` no corporativo) não existem mais em nenhuma
+camada, nem no seed.
 
 Diagrama: `diagrams/metadados_modelo.drawio`.
 
@@ -214,13 +233,15 @@ Diagrama: `diagrams/metadados_modelo.drawio`.
 DAG `carga_inicial_dw`, disparo manual (`schedule=None`), duas fases:
 
 1. **corporativo** — `carregar_corporativo_catalogos` (copia
-   categorias/tipos/valores válidos do `datatran`) e
-   `carregar_corporativo_geografia` (resolve toda a hierarquia
-   uf→município, rodovia→localização→local a partir das combinações
-   distintas do OLTP) rodam em paralelo; depois
-   `carregar_corporativo_ocorrencias` lê `acidentes` +
-   `acidente_vitima` + `acidente_atributo` do `datatran` e grava o fato
-   operacional (`DELETE` + reinsert completo, é carga inicial).
+   categorias/classificações válidas do `datatran`, incluindo os 8 catálogos
+   de classificação) e `carregar_corporativo_geografia` (resolve toda a
+   hierarquia uf→município, rodovia→localização→local a partir das
+   combinações distintas do OLTP, em lote - ver abaixo) rodam em paralelo;
+   depois `carregar_corporativo_ocorrencias` lê `acidentes` +
+   `acidente_vitima` + `acidente_tracado_via` do `datatran` (as 8
+   classificações vêm direto como colunas de `acidentes`, não mais de uma
+   tabela separada) e grava o fato operacional (`DELETE` + reinsert
+   completo, é carga inicial).
 2. **data_marting** — nunca toca o `datatran`; lê só o corporativo e monta
    `dim_local`/`dim_classificacao_acidente`/`fato_acidentes`
    (`dim_tempo` já vem populada por `data_marting/dw_postgres.sql`, via
@@ -230,18 +251,24 @@ DAG `carga_inicial_dw`, disparo manual (`schedule=None`), duas fases:
 docker exec dw_airflow airflow dags trigger carga_inicial_dw
 ```
 
-`carregar_corporativo_ocorrencias` processa cada ocorrência num loop Python
-síncrono (sem batch) - com o `datatran2007.csv` isolado (127671 linhas) leva
-de 5 a 10 minutos numa máquina ociosa; com todos os anos do dataset
-carregados (`dataset/datatran*.csv`, soma na casa dos milhões de linhas) a
-carga é proporcionalmente mais longa, de dezenas de minutos a algumas horas,
-dependendo da máquina (o gargalo real costuma ser memória/swap do host, não
-CPU — confira com `vm_stat`/`top -l 1` antes de desconfiar do código se a
-carga demorar muito). Isso não é travamento. Por isso o `docker-compose.yml`
+**Processamento em lote**: `carregar_corporativo_ocorrencias` e as duas
+funções do data_marting processam `TAMANHO_LOTE` (5000) ocorrências por vez,
+paginando por id, em vez de um `fetchall()` da tabela inteira - com todos os
+anos carregados (2,2M+ linhas), ler tudo de uma vez + os dicts de pivot de
+vítima/traçado em memória já causou OOM (`SIGKILL`) numa task do Airflow.
+`carregar_corporativo_geografia` resolve as ~368k combinações distintas de
+geografia via upsert em lote (`resolver_geografia_em_lote`, `execute_values`)
+em vez de round-trip por combinação - o loop antigo levava mais de 1h só
+nessa etapa; `id_tempo`/`id_local` na carga de ocorrências vêm de mapas
+carregados uma vez (`carregar_mapa_tempo`/`carregar_mapa_local_acidente`) em
+vez de round-trip por ocorrência. Com isso, os 2,2M+ linhas completos levam
+em torno de 1h (medido); por ano isolado (ex. só `datatran2007.csv`, ~127k
+linhas) é bem mais rápido. O gargalo real costuma ser mesmo assim
+memória/round-trips de banco, não CPU - por isso o `docker-compose.yml`
 aumenta `AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT` para 3600s
-(padrão do Airflow é 300s): uma task Python longa e só com round-trips de
-banco não tem ponto natural pra heartbeat, e o padrão mata a task achando
-que travou antes dela terminar numa máquina mais carregada.
+(padrão do Airflow é 300s): uma task Python longa e com muitos round-trips de
+banco não tem ponto natural pra heartbeat, e o padrão mata a task achando que
+travou antes dela terminar numa máquina mais carregada.
 
 ## Airflow — carga incremental
 
@@ -267,8 +294,12 @@ docker exec dw_airflow airflow dags trigger carga_incremental_dw
 DAG `ml_clusterizacao_regras_associacao`, uma única task que chama
 `rodar_pipeline()` de `ml/clusterizacao_regras_associacao.py` (mesmo código do
 CLI standalone, ver seção "Machine Learning" abaixo) com `host="postgres"`
-(rede interna do Docker Compose, não `localhost`). Disparo manual, depois de
-pelo menos uma `carga_inicial_dw` (precisa de `fato_acidentes` populado):
+(rede interna do Docker Compose, não `localhost`). A DAG tem
+`params={"ano": 2024}` - os 20 anos juntos (~2,2M ocorrências) estouram a
+memória do Apriori por cluster (ver seção "Machine Learning" abaixo); pra
+analisar outro ano, dispara com "Trigger DAG w/ config" trocando o valor.
+Disparo manual, depois de pelo menos uma `carga_inicial_dw` (precisa de
+`fato_acidentes` populado):
 
 ```bash
 docker exec dw_airflow airflow dags trigger ml_clusterizacao_regras_associacao
@@ -322,11 +353,25 @@ o container `metabase` fica pronto (sem clicar em nada na UI):
    Mundo). Usa um GeoJSON público de 27 features com a sigla de cada estado
    (`codeforgermany/click_that_hood`), casando com `dim_local.sigla_uf` via
    `map.region_key`.
-3. Cria uma coleção "PRF - Acidentes de Trânsito" e, dentro dela, 17
+3. Cria uma coleção "PRF - Acidentes de Trânsito" e, dentro dela, 18
    consultas nativas (SQL) sobre `fato_acidentes`/`dim_tempo`/`dim_local`/
    `dim_classificacao_acidente` + `cluster_municipio`/`regra_associacao`.
 4. Monta o dashboard com todas elas já posicionadas numa grade de 24
-   colunas.
+   colunas, com cores aplicadas por card (ver "Paleta de cores" abaixo).
+
+**Importante ao editar `metabase/setup_dashboards.py`**: diferente de
+`airflow/dags` (bind mount, qualquer edição já reflete no container),
+`metabase/Dockerfile` faz `COPY setup_dashboards.py .` - a imagem só pega
+uma mudança no script depois de `docker compose build metabase-setup`.
+Reaplicar (depois de editar o script):
+
+```bash
+docker compose build metabase-setup
+# apaga o dashboard atual + os cards (senão o setup só vê "dashboard já
+# existe" e não recria nada - idempotência por nome) via API do Metabase,
+# depois:
+docker compose rm -f metabase-setup && docker compose up -d metabase-setup
+```
 
 O painel (pensando como analista da PRF, focado em onde/quando/por que
 priorizar fiscalização):
@@ -346,12 +391,26 @@ priorizar fiscalização):
   visibilidade o principal fator neste dataset).
 - **Top 10 rodovias (BR) por óbitos** e **tipo de pista** — BR-101 e BR-116
   concentram bem mais óbitos que as demais.
-- **Municípios por Cluster**, **Perfil de Risco por Cluster** e **Top Regras
-  de Associação por Cluster** (última linha do painel) — saída da DAG
+- **Municípios por Cluster**, **Perfil de Risco por Cluster (%)** e **Top
+  Regras de Associação por Cluster** (última linha do painel) — saída da DAG
   `ml_clusterizacao_regras_associacao` (seção acima): quantos municípios caem
-  em cada cluster de risco, o perfil médio de cada um, e as regras de
-  associação (causa/clima/tipo de pista etc.) mais fortes (maior lift)
-  específicas de cada cluster.
+  em cada cluster de risco, o perfil médio de cada um (gráfico de barras
+  agrupado por métrica - taxa de letalidade, feridos graves, proporção fim de
+  semana/noite/chuva/pista simples, concentração de causa - todas em %; não é
+  mais uma tabela larga de 11 colunas decimais cruas, que cortava na tela), e
+  as regras de associação (causa/clima/tipo de pista etc., 1 antecedente -> 1
+  consequente - ver `--max-itemset-len` na seção "Machine Learning") mais
+  fortes (maior lift) específicas de cada cluster, com suporte/confiança em
+  percentual.
+
+  Os clusters são identificados por **rótulo calculado**, não pelo número
+  arbitrário que o KMeans atribui ("Cluster 0"/"Cluster 1" não diz nada pra
+  quem lê o painel, e esse número pode trocar numa próxima rodada da DAG).
+  Uma CTE SQL compartilhada pelos 3 cards (`ROTULO_CLUSTER_CTE` em
+  `metabase/setup_dashboards.py`) ranqueia os clusters de
+  `cluster_municipio` pela letalidade média toda vez que o card roda -
+  "Maior Letalidade"/"Menor Letalidade" (ou variações pra k > 2) -, sempre
+  consistente com os dados atuais.
 
 Todas as queries são nativas (SQL puro), então rodam mesmo sem o Metabase
 "conhecer" o schema de antemão — os números só aparecem depois que a
@@ -359,6 +418,43 @@ Todas as queries são nativas (SQL puro), então rodam mesmo sem o Metabase
 precisam da `ml_clusterizacao_regras_associacao`); antes disso os cards
 aparecem vazios/com erro, e não precisam ser recriados depois, só recarregar
 a página.
+
+### Paleta de cores
+
+Tema "problemática de acidentes" (abre com vermelho), validado com a skill de
+dataviz do projeto (CVD/contraste/lightness-band, não só "achei bonito" -
+`node scripts/validate_palette.js` dessa skill). OSS Metabase **não** deixa
+recolorir globalmente - `application-colors` é feature paga ("whitelabel"; a
+API recusa com "recurso :whitelabel não está disponível" na versão grátis).
+Por isso as cores são aplicadas por card:
+
+- **Gráficos de série única** (bar/row/line) — `visualization_settings.series_settings.<coluna>.color`.
+  Mesma métrica = mesma cor em todo o painel (ex. "ocorrencias" sempre
+  vermelho), pra reforçar identidade visual em vez de cor arbitrária por
+  gráfico.
+- **Pizza** (`fase_dia`, `tipo_pista`) — `visualization_settings.pie.colors`,
+  um dict `{valor_da_categoria: cor}`.
+- **Barra agrupada** (`perfil_risco_cluster`, com `rotulo` como 2a dimensão/
+  série) — mesmo `series_settings`, mas chaveado pelo *valor* do rótulo
+  ("Maior Letalidade" → vermelho, "Menor Letalidade" → azul - o par
+  diverging validado pela skill, polos quente/frio que leem como opostos,
+  em vez do clássico vermelho/verde, ruim pra daltonismo; faz sentido aqui
+  porque os rótulos são de fato uma polaridade de risco, não categorias
+  arbitrárias).
+- **Mapa coroplético** (`mapa_obitos_uf`) — `visualization_settings.map.colors`
+  (array, rampa sequencial), **não** `color` (singular - a API aceita sem
+  erro mas o renderer não lê; a chave certa foi confirmada lendo o bundle
+  `map-renderer.js` de dentro do próprio `metabase.jar`, já que não aparece
+  documentada em lugar nenhum). Rampa vermelha clara→escura (menos→mais
+  óbitos) - validada como *sequencial* pela skill (monotonicidade de
+  luminosidade + mesma matiz; o degrau mais claro quase sumir no branco é
+  esperado aqui, representa "zero óbitos" - diferente de uma rampa ordinal,
+  que exigiria contraste mínimo até no degrau mais claro).
+
+Gráficos single-dimension sem breakout (ex. `municipios_por_cluster`, que só
+tem `rotulo` como dimensão e `municipios` como métrica) pintam a série
+inteira com UMA cor - Metabase não colore por categoria do eixo x sem uma 2a
+dimensão/breakout, diferente de pizza.
 
 `docker compose logs -f metabase-setup` mostra o progresso e, no final, a
 URL exata do dashboard (`http://localhost:3000/dashboard/<id>`) — o id não é
@@ -419,7 +515,37 @@ Standalone, por padrão conecta em `localhost:5432` (mesmas credenciais do
 e exige a carga do data mart já feita (`fato_acidentes` populado - ver seção
 Airflow acima). Use `--help` para ver todos os parâmetros
 (`--min-ocorrencias`, `--k`, `--min-support`, `--min-lift`,
-`--min-confidence`, `--top-n-rules`, `--no-persist`).
+`--min-confidence`, `--max-itemset-len`, `--top-n-rules`, `--no-persist`,
+`--ano`).
+
+**`--ano` (recomendado)**: restringe a clusterização/regras a um único ano em
+vez dos 20 juntos. Com o dataset completo (~2,2M ocorrências), o Apriori por
+cluster (`TransactionEncoder` + `apriori`) soma com o resto do processo
+Python (pandas/sklearn/mlxtend já carregados) mais memória do que o container
+do Airflow costuma ter disponível, e a task morre com `SIGKILL` sem
+traceback. Um ano por vez (~70-190k ocorrências, variando por ano) cabe
+confortavelmente - e como efeito colateral permite comparar clusters/regras
+entre anos. A DAG expõe isso como parâmetro (`params={"ano": 2024}` em
+`airflow/dags/ml_clusterizacao_regras_associacao.py`) - pra analisar outro
+ano, dispara a DAG com "Trigger DAG w/ config" trocando o valor.
+
+**`--max-itemset-len`** (default 2, ou seja regras 1 antecedente -> 1
+consequente): o Apriori encontra closure por especialização - uma vez que um
+par forte existe (ex. causa=X -> tipo_acidente=Y), toda superset dele (+1
+item de contexto) também passa o filtro de suporte/lift, inundando o "top N
+por lift" com N variações do mesmo achado em vez de N achados diferentes, e
+itemsets grandes viram texto longo demais pra uma tabela de dashboard. Regras
+espelhadas (A->C e C->A, que sempre têm o mesmo lift - a fórmula é simétrica)
+também são descartadas automaticamente, mantendo só a direção de maior
+confiança de cada par.
+
+A implementação do `apriori()` (`mlxtend`) usa `low_memory=True`: o caminho
+padrão da lib monta um array denso 3D (linhas x combinações x tamanho do
+itemset) pra avaliar todos os itemsets de um tamanho de uma vez - com ~1M+
+transações por cluster isso sozinho já passa de alguns GB. `low_memory=True`
+troca isso por um gerador que avalia uma combinação por vez (3-6x mais lento,
+mesmo resultado estatístico - confirmado comparando os dois modos num
+dataset sintético).
 
 Saídas em `ml/output/`:
 
@@ -448,6 +574,19 @@ entre TODOS os anos (não reinicia por ano, mesmo com a carga dividida em um
 arquivo por ano - ver seção seguinte). Detalhes completos da modelagem 4FN,
 incluindo a decomposição de `tracado_via` (multivalorado desde 2017), estão
 no cabeçalho de `db/01_schema.sql`.
+
+**Maiúscula/acento inconsistente entre anos**: a PRF não manteve
+maiúscula/acento consistentes em 4 das 8 classificações
+(`causa_acidente`, `tipo_acidente`, `fase_dia`, `condicao_metereologica`) -
+ex. "Ceu Claro" num ano do CSV, "Céu Claro" noutro, mesmo significado. Sem
+normalizar, isso vira duas linhas de catálogo distintas (uma delas, "Céu
+Claro"/"Ceu Claro", respondia sozinha por ~750 mil das 2,2M ocorrências),
+duplicando categoria em gráfico e diluindo suporte/confiança nas regras de
+associação (o Apriori trata como dois itens diferentes). `NORMALIZACAO_CLASSIFICACAO`
+em `scripts/gerar_inserts.py` mapeia cada variante pra uma forma canônica
+antes de gerar os INSERTs - afeta só a geração a partir daqui pra frente
+(regenerar + recarregar, ver seção seguinte, pra uma base já carregada
+herdar a correção).
 
 ## Regerando os INSERTs do OLTP
 
