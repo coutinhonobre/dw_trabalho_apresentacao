@@ -29,6 +29,7 @@ STANDARD_EMAIL = "metabase@metabase.com"
 STANDARD_PASSWORD = "metabase"
 DB_NAME = "DW - PRF Acidentes"
 COLLECTION_NAME = "PRF - Acidentes de Trânsito"
+DICIONARIO_DASHBOARD_NAME = "Metadados - DW PRF Acidentes"
 DASHBOARD_NAME = "Painel PRF - Acidentes de Trânsito"
 
 BRAZIL_STATES_GEOJSON_URL = (
@@ -626,6 +627,181 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
     return cards
 
 
+# ----------------------------------------------------------------
+# Dicionário de Dados: dashboard separado, schema `metadados` (banco `dw`) -
+# documenta tabelas/campos do transacional e do DW, os algoritmos de ETL e a
+# linhagem completa entre eles (de onde vem cada campo do DW, por qual
+# transformação). Schema populado manualmente via
+# dw/metadados_seed_postgres.sql (ver README, seção Metadados) - fora da
+# conexão "public"-only do painel operacional, mas SQL nativo alcança
+# qualquer schema que o usuário do Postgres enxergue, o schema-filter da
+# conexão só limita o que aparece no browser gráfico do Metabase.
+# ----------------------------------------------------------------
+
+def build_dicionario_cards(mb: MB, database_id: int, collection_id: int) -> dict:
+    cards = {}
+
+    cards["contagem_tabelas_dw"] = make_card(
+        mb, database_id, collection_id, "Tabelas do DW",
+        "SELECT count(*) AS tabelas FROM metadados.tabela_dw",
+        "scalar", {}, [],
+    )
+    cards["contagem_campos_dw"] = make_card(
+        mb, database_id, collection_id, "Campos do DW",
+        "SELECT count(*) AS campos FROM metadados.campo_dw",
+        "scalar", {}, [],
+    )
+    cards["contagem_tabelas_transacional"] = make_card(
+        mb, database_id, collection_id, "Tabelas Transacionais",
+        "SELECT count(*) AS tabelas FROM metadados.tabela_transacional",
+        "scalar", {}, [],
+    )
+    cards["contagem_algoritmos"] = make_card(
+        mb, database_id, collection_id, "Algoritmos de ETL",
+        "SELECT count(*) AS algoritmos FROM metadados.algoritmo_etl",
+        "scalar", {}, [],
+    )
+    cards["contagem_linhagem"] = make_card(
+        mb, database_id, collection_id, "Linhas de Linhagem",
+        "SELECT count(*) AS linhas FROM metadados.integracao_transacional_dw",
+        "scalar", {}, [],
+    )
+
+    # Centro do dicionário: de onde vem cada campo do DW, e por qual
+    # transformação. Origem é sempre UMA das três (nunca mais de uma
+    # preenchida - ver CHECK em metadados.integracao_transacional_dw):
+    # campo transacional, outro campo do DW (ex. corporativo -> data mart),
+    # ou dado externo (calendário gerado, regra do ETL sem coluna de origem).
+    cards["linhagem"] = make_card(
+        mb, database_id, collection_id, "Linhagem: de onde vem cada campo do DW",
+        """
+        SELECT
+            ad.nome_assunto AS assunto,
+            td.nome_tabela AS tabela_destino,
+            cd.nome_campo AS campo_destino,
+            cd.papel_campo AS papel,
+            CASE
+                WHEN i.id_campo_transacional IS NOT NULL THEN 'Transacional: ' || tt.nome_tabela || '.' || ct.nome_campo
+                WHEN i.id_campo_dw_origem IS NOT NULL THEN 'DW: ' || tdo.nome_tabela || '.' || cdo.nome_campo
+                WHEN i.id_dado_externo_conteudo IS NOT NULL THEN 'Externo: ' || de.nome_dado_externo
+                ELSE '-'
+            END AS origem,
+            COALESCE(alg.nome_algoritmo, '(cópia direta, sem transformação)') AS algoritmo
+        FROM metadados.integracao_transacional_dw i
+        JOIN metadados.campo_dw cd ON cd.id_campo = i.id_campo_dw_destino
+        JOIN metadados.tabela_dw td ON td.id_tabela_dw = cd.id_tabela_dw
+        JOIN metadados.assunto_dw ad ON ad.id_assunto = td.id_assunto
+        LEFT JOIN metadados.campo_transacional ct ON ct.id_campo = i.id_campo_transacional
+        LEFT JOIN metadados.tabela_transacional tt ON tt.id_tabela = ct.id_tabela
+        LEFT JOIN metadados.campo_dw cdo ON cdo.id_campo = i.id_campo_dw_origem
+        LEFT JOIN metadados.tabela_dw tdo ON tdo.id_tabela_dw = cdo.id_tabela_dw
+        LEFT JOIN metadados.dado_externo_conteudo dec2 ON dec2.id_conteudo = i.id_dado_externo_conteudo
+        LEFT JOIN metadados.dado_externo de ON de.id_dado_externo = dec2.id_dado_externo
+        LEFT JOIN metadados.algoritmo_etl alg ON alg.id_algoritmo = i.id_algoritmo
+        ORDER BY ad.nome_assunto, td.nome_tabela, cd.id_campo
+        """,
+        "table", {}, [],
+    )
+
+    cards["algoritmos_etl"] = make_card(
+        mb, database_id, collection_id, "Algoritmos de ETL Usados",
+        """
+        SELECT nome_algoritmo, descricao, referencia_codigo
+        FROM metadados.algoritmo_etl
+        ORDER BY id_algoritmo
+        """,
+        "table", {}, [],
+    )
+
+    cards["tabelas_dw"] = make_card(
+        mb, database_id, collection_id, "Tabelas do DW por Assunto",
+        """
+        SELECT ad.nome_assunto AS assunto, td.nome_tabela, td.tipo_tabela, td.grao, td.periodicidade_carga
+        FROM metadados.tabela_dw td
+        JOIN metadados.assunto_dw ad ON ad.id_assunto = td.id_assunto
+        ORDER BY ad.nome_assunto, td.nome_tabela
+        """,
+        "table", {}, [],
+    )
+
+    cards["campos_dw"] = make_card(
+        mb, database_id, collection_id, "Campos do DW",
+        """
+        SELECT td.nome_tabela AS tabela, cd.nome_campo AS campo, cd.papel_campo AS papel,
+               tc.nome_tipo_campo AS tipo, cd.tamanho_campo AS tamanho, cd.casa_decimal,
+               cd.descricao
+        FROM metadados.campo_dw cd
+        JOIN metadados.tabela_dw td ON td.id_tabela_dw = cd.id_tabela_dw
+        JOIN metadados.tipo_campo tc ON tc.id_tipo_campo = cd.id_tipo_campo
+        ORDER BY td.nome_tabela, cd.id_campo
+        """,
+        "table", {}, [],
+    )
+
+    cards["tabelas_transacionais"] = make_card(
+        mb, database_id, collection_id, "Tabelas do Sistema Transacional",
+        """
+        SELECT st.nome_sistema AS sistema, tt.nome_tabela, tt.descricao
+        FROM metadados.tabela_transacional tt
+        JOIN metadados.sistema_transacional st ON st.id_sistema = tt.id_sistema
+        ORDER BY tt.nome_tabela
+        """,
+        "table", {}, [],
+    )
+
+    cards["campos_transacionais"] = make_card(
+        mb, database_id, collection_id, "Campos do Sistema Transacional",
+        """
+        SELECT tt.nome_tabela AS tabela, ct.nome_campo AS campo, tc.nome_tipo_campo AS tipo,
+               ct.tamanho_campo AS tamanho, ct.casa_decimal, ct.descricao
+        FROM metadados.campo_transacional ct
+        JOIN metadados.tabela_transacional tt ON tt.id_tabela = ct.id_tabela
+        JOIN metadados.tipo_campo tc ON tc.id_tipo_campo = ct.id_tipo_campo
+        ORDER BY tt.nome_tabela, ct.id_campo
+        """,
+        "table", {}, [],
+    )
+
+    return cards
+
+
+def build_dicionario_dashboard(mb: MB, collection_id: int, cards: dict) -> int:
+    dash = mb.post("/api/dashboard", json={
+        "name": DICIONARIO_DASHBOARD_NAME,
+        "collection_id": collection_id,
+        "description": (
+            "Dicionário de dados do projeto: tabelas e campos do sistema "
+            "transacional (datatran) e do DW (corporativo + data mart), os "
+            "algoritmos de ETL usados e a linhagem completa - de onde vem "
+            "cada campo do DW e por qual transformação. Fonte: schema "
+            "metadados (dw/metadados_postgres.sql + "
+            "dw/metadados_seed_postgres.sql)."
+        ),
+    })
+    dash_id = dash["id"]
+
+    dashcards = [
+        # linha 0: contadores
+        dashcard(-1, cards["contagem_tabelas_transacional"], 0, 0, 5, 3),
+        dashcard(-2, cards["contagem_tabelas_dw"], 0, 5, 5, 3),
+        dashcard(-3, cards["contagem_campos_dw"], 0, 10, 5, 3),
+        dashcard(-4, cards["contagem_algoritmos"], 0, 15, 4, 3),
+        dashcard(-5, cards["contagem_linhagem"], 0, 19, 5, 3),
+        # linha 1: o centro do dicionário - linhagem completa
+        dashcard(-6, cards["linhagem"], 3, 0, 24, 12),
+        # linha 2: algoritmos de ETL
+        dashcard(-7, cards["algoritmos_etl"], 15, 0, 24, 8),
+        # linha 3: tabelas (DW + transacional lado a lado)
+        dashcard(-8, cards["tabelas_dw"], 23, 0, 12, 8),
+        dashcard(-9, cards["tabelas_transacionais"], 23, 12, 12, 8),
+        # linha 4: campos (DW + transacional lado a lado)
+        dashcard(-10, cards["campos_dw"], 31, 0, 12, 10),
+        dashcard(-11, cards["campos_transacionais"], 31, 12, 12, 10),
+    ]
+    mb.put(f"/api/dashboard/{dash_id}", json={"dashcards": dashcards})
+    return dash_id
+
+
 def dashcard(id_, card, row, col, size_x, size_y):
     entry = {"id": id_, "card_id": card["id"], "row": row, "col": col, "size_x": size_x, "size_y": size_y}
     if card["filters"]:
@@ -695,10 +871,12 @@ def main():
     get_or_create_standard_user(mb)
 
     dashboards = mb.get("/api/dashboard")
-    existing = [d for d in dashboards if d["name"] == DASHBOARD_NAME]
-    if existing:
-        print(f"Dashboard '{DASHBOARD_NAME}' já existe (id={existing[0]['id']}). Nada a fazer.", flush=True)
-        print(f"Acesse: http://localhost:3000/dashboard/{existing[0]['id']}", flush=True)
+    painel_existente = next((d for d in dashboards if d["name"] == DASHBOARD_NAME), None)
+    dicionario_existente = next((d for d in dashboards if d["name"] == DICIONARIO_DASHBOARD_NAME), None)
+    if painel_existente and dicionario_existente:
+        print(f"Dashboard '{DASHBOARD_NAME}' já existe (id={painel_existente['id']}).", flush=True)
+        print(f"Dashboard '{DICIONARIO_DASHBOARD_NAME}' já existe (id={dicionario_existente['id']}).", flush=True)
+        print("Nada a fazer.", flush=True)
         return
 
     dbs = mb.get("/api/database")["data"]
@@ -734,14 +912,25 @@ def main():
     collection_id = get_or_create_collection(mb)
     print(f"Coleção '{COLLECTION_NAME}' (id={collection_id}).", flush=True)
 
-    print("Criando as consultas (cards) do painel...", flush=True)
-    cards = build_cards(mb, db_id, collection_id)
+    if not painel_existente:
+        print("Criando as consultas (cards) do painel operacional...", flush=True)
+        cards = build_cards(mb, db_id, collection_id)
+        print("Montando o painel operacional...", flush=True)
+        dash_id = build_dashboard(mb, collection_id, cards)
+        print(f"Painel operacional pronto: http://localhost:3000/dashboard/{dash_id}", flush=True)
+    else:
+        print(f"Painel operacional já existe (id={painel_existente['id']}), pulando.", flush=True)
 
-    print("Montando o dashboard...", flush=True)
-    dash_id = build_dashboard(mb, collection_id, cards)
+    if not dicionario_existente:
+        print("Criando as consultas (cards) do dicionário de dados...", flush=True)
+        cards_dic = build_dicionario_cards(mb, db_id, collection_id)
+        print("Montando o dicionário de dados...", flush=True)
+        dic_id = build_dicionario_dashboard(mb, collection_id, cards_dic)
+        print(f"Dicionário de dados pronto: http://localhost:3000/dashboard/{dic_id}", flush=True)
+    else:
+        print(f"Dicionário de dados já existe (id={dicionario_existente['id']}), pulando.", flush=True)
 
     print("=" * 70, flush=True)
-    print(f"Painel pronto: http://localhost:3000/dashboard/{dash_id}", flush=True)
     print(f"Login padrão (visualização):  {STANDARD_EMAIL} / {STANDARD_PASSWORD}", flush=True)
     print(f"Login admin (administração):  {ADMIN_EMAIL} / {ADMIN_PASSWORD}", flush=True)
     print("=" * 70, flush=True)
