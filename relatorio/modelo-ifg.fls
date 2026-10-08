@@ -2,7 +2,7 @@ PWD /Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio
 INPUT /usr/local/texlive/2024/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT modelo-ifg.tex
+INPUT /Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex
 OUTPUT modelo-ifg.log
 INPUT ./formatacao/classe-ifg.cls
 INPUT formatacao/classe-ifg.cls

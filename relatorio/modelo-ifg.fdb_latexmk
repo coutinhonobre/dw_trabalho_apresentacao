@@ -1,15 +1,16 @@
 # Fdb version 4
-["bibtex modelo-ifg"] 1791430899.15743 "modelo-ifg.aux" "modelo-ifg.bbl" "modelo-ifg" 1791430902.61504 0
+["bibtex modelo-ifg"] 1791430899.15743 "modelo-ifg.aux" "modelo-ifg.bbl" "modelo-ifg" 1791431092.02777 0
   "./bib/bibliografia.bib" 1791429550.11949 7422 ce8de72cd7d6d4ea4476aad5a09f3acd ""
   "./formatacao/abnt-alf.bst" 1791420679.00422 60769 869c104570470b28dd4b75c76fb2e034 ""
   "./formatacao/abnt-options.bib" 1791420679.00602 5396 4eb260dac60f150ae608d45252853090 ""
-  "modelo-ifg.aux" 1791430902.12503 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
+  "modelo-ifg.aux" 1791431091.41587 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
   (generated)
   "modelo-ifg.bbl"
   "modelo-ifg.blg"
   (rewritten before read)
-["pdflatex"] 1791430899.27793 "modelo-ifg.tex" "modelo-ifg.pdf" "modelo-ifg" 1791430902.61524 0
+["pdflatex"] 1791431087.60675 "/Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex" "modelo-ifg.pdf" "modelo-ifg" 1791431092.02805 0
   "../app/ml/clusterizacao_regras_associacao.py" 1791430882.66242 22186 bccbb67829084681a1acc165b6f43134 ""
+  "/Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex" 1791430865.49556 6995 53c9eb4a2e3f41694006597a20f0246e ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc" 1202520719 2405 5dcf2c1b967ee25cc46c58cd52244aed ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc" 1202520719 2840 216e6e45ad352e2456e1149f28885bee ""
@@ -356,10 +357,10 @@
   "formatacao/nbr10520-2002.def" 1791420679.01183 755 58df08aa3b760838e032356fbd6e92c0 ""
   "formatacao/nbr10522-1988.def" 1791420679.01206 2041 054850181facb59392abdc01052d6588 ""
   "formatacao/tocloft.sty" 1791420679.01231 33755 df8a47a34e03da3c7f7a7443f3b38943 ""
-  "modelo-ifg.aux" 1791430902.12503 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
+  "modelo-ifg.aux" 1791431091.41587 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
   "modelo-ifg.bbl" 1791430899.27663 3847 344f6a8319bef14a98755dc89ba18b7b "bibtex modelo-ifg"
-  "modelo-ifg.brf" 1791430902.12714 626 7dd6c6a51346e18c557649e666a59942 "pdflatex"
-  "modelo-ifg.out" 1791430902.127 3528 ab0fa56baad6fdcfd30b9932aa74e7a1 "pdflatex"
+  "modelo-ifg.brf" 1791431091.4185 626 7dd6c6a51346e18c557649e666a59942 "pdflatex"
+  "modelo-ifg.out" 1791431091.41831 3528 ab0fa56baad6fdcfd30b9932aa74e7a1 "pdflatex"
   "modelo-ifg.tex" 1791430865.49556 6995 53c9eb4a2e3f41694006597a20f0246e ""
   "tex/cap01.tex" 1791430594.35128 3797 53a8e0872969ea1dd53784c4a7e20c9a ""
   "tex/cap02.tex" 1791428712.89769 4413 e2056b0cd8f2cb67a8bfa08c3c6e9359 ""
