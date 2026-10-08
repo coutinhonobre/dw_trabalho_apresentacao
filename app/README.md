@@ -8,8 +8,10 @@ Cinco camadas sobre o dataset de acidentes de trânsito da PRF
    não-volátil, variante no tempo), schema `corporativo` do banco `dw`.
 3. **Data mart em estrela** — modelado à Kimball, derivado do corporativo, schema
    `public` do banco `dw`.
-4. **BI (Metabase)** — painel "Painel PRF - Acidentes de Trânsito" sobre o data
-   mart, provisionado automaticamente via API.
+4. **BI (Metabase)** — dois dashboards provisionados automaticamente via API:
+   "Painel PRF - Acidentes de Trânsito" (operacional, sobre o data mart) e
+   "Metadados - DW PRF Acidentes" (dicionário de dados, sobre o schema
+   `metadados`).
 5. **Machine Learning (`ml/`)** — clusterização de municípios + regras de
    associação entre classificações de acidente, por cluster, sobre o data
    mart.
@@ -35,6 +37,8 @@ db/
                                gerados a partir do CSV (não editar à mão, ver scripts/)
   02-NN-AAAA.sql               INSERTs de acidentes/vítimas/classificações de UM ano (1 arquivo por ano
                                em dataset/, carrega depois de 02-00-catalogos.sql - ver scripts/)
+  simular_novas_ocorrencias.sql  insere 1 ocorrência de teste no OLTP (execução manual, pra testar
+                               carga_incremental_dw sem esperar um CSV novo - ver seção Airflow)
 scripts/
   gerar_inserts.py           lê os CSVs e gera db/02-00-catalogos.sql + um db/02-NN-AAAA.sql por ano
 dw/                          camada corporativa integrada (Inmon: por assunto, normalizada)
@@ -98,6 +102,28 @@ ver seção BI abaixo. Dois logins:
 
 - `metabase@metabase.com` / `metabase` — usuário padrão, só visualiza os painéis.
 - `admin@metabase.com` / `Metabase123!` — admin, criado pelo setup inicial (conexão de banco, mapas, usuários).
+
+**Rodando `docker compose` pra um serviço só (não via `start.sh`)**: o Compose
+deriva o "nome do projeto" (usado pra nomear a rede interna e decidir se um
+container já existe) do **diretório de onde o comando roda**, a menos que
+você passe `-p` explícito. Como `docker-compose.yml` sempre viveu em `app/`,
+o nome do projeto sempre foi `dw_trabalho_apresentacao` (nome da pasta pai) -
+rodando de dentro de `app/` sem `-p`, o Compose tenta usar `app` como nome do
+projeto, não reconhece os containers já existentes (`container_name` fixo,
+ex. `datatran_postgres`) como "do mesmo projeto", e tenta recriá-los do zero
+colidindo pelo nome. Visto ao vivo: `docker compose up -d metabase-setup`
+quase recriou o `datatran_postgres` (os dados sobreviveram porque o volume
+anônimo do Postgres some só com `down -v` **explícito** - um recreate comum,
+sem `-v`, preserva e reconecta o volume anônimo no container novo, mas é sorte
+de implementação, não garantia). Pra qualquer comando scoped (`up -d
+<serviço>`, `build <serviço>`, `rm -f <serviço>` etc.), use sempre:
+
+```bash
+docker compose -p dw_trabalho_apresentacao <comando>
+```
+
+`./start.sh` não tem esse problema (sempre sobe a stack inteira e sempre do
+mesmo diretório, `cd app` embutido no próprio script).
 
 ## Camada 1 — Transacional (OLTP), banco `datatran`
 
@@ -235,6 +261,10 @@ camada, nem no seed.
 
 Diagrama: `diagrams/metadados_modelo.drawio`.
 
+Depois de rodar o seed, o conteúdo fica navegável como dicionário de dados
+direto no Metabase (dashboard "Metadados - DW PRF Acidentes") - ver seção
+"BI — Metabase" abaixo.
+
 ## Airflow — carga inicial
 
 DAG `carga_inicial_dw`, disparo manual (`schedule=None`), duas fases:
@@ -323,6 +353,16 @@ não por data — o `id` do datatran é sequencial dentro do arquivo carregado.
 docker exec dw_airflow airflow dags trigger carga_incremental_dw
 ```
 
+**Testando sem esperar um CSV novo de verdade**: `db/simular_novas_ocorrencias.sql`
+insere uma ocorrência no `datatran` com `id` acima do maior já existente (o
+`(SELECT MAX(id) + 1 FROM acidentes)` garante isso sozinho, mesmo rodando
+várias vezes seguidas):
+
+```bash
+docker exec -i datatran_postgres psql -U postgres -d datatran < db/simular_novas_ocorrencias.sql
+docker exec dw_airflow airflow dags trigger carga_incremental_dw
+```
+
 ## Airflow — clusterização + regras de associação (ML)
 
 DAG `ml_clusterizacao_regras_associacao`, uma única task que chama
@@ -373,25 +413,36 @@ Continua possível disparar cada DAG manualmente a qualquer momento (ex.:
 depois de editar o pipeline de ML e querer só re-rodar aquela parte) - o
 bootstrap só cobre a carga inicial do zero.
 
-## BI — Metabase, "Painel PRF — Acidentes de Trânsito"
+## BI — Metabase: "Painel PRF" (operacional) + "Metadados" (dicionário de dados)
 
-`metabase/setup_dashboards.py` provisiona tudo via API do Metabase assim que
-o container `metabase` fica pronto (sem clicar em nada na UI):
+`metabase/setup_dashboards.py` provisiona **dois dashboards** via API do
+Metabase assim que o container `metabase` fica pronto (sem clicar em nada na
+UI):
 
 1. Cria o usuário admin (`admin@metabase.com` / `Metabase123!`), o usuário
    padrão de uso do dia a dia (`metabase@metabase.com` / `metabase` — grupo
    "All Users", sem acesso de administração) e a conexão com o banco `dw`
-   (schema `public`, o data mart).
+   (schema `public`, o data mart - ver nota sobre schema `metadados` abaixo).
 2. Registra um **mapa customizado dos estados do Brasil** em
    `Admin > Maps` — o Metabase não vem com esse mapa por padrão (só tem EUA e
    Mundo). Usa um GeoJSON público de 27 features com a sigla de cada estado
    (`codeforgermany/click_that_hood`), casando com `dim_local.sigla_uf` via
    `map.region_key`.
-3. Cria uma coleção "PRF - Acidentes de Trânsito" e, dentro dela, 18
-   consultas nativas (SQL) sobre `fato_acidentes`/`dim_tempo`/`dim_local`/
-   `dim_classificacao_acidente` + `cluster_municipio`/`regra_associacao`.
-4. Monta o dashboard com todas elas já posicionadas numa grade de 24
-   colunas, com cores aplicadas por card (ver "Paleta de cores" abaixo).
+3. Cria uma coleção "PRF - Acidentes de Trânsito" e, dentro dela, as
+   consultas nativas (SQL) dos dois dashboards: 18 sobre
+   `fato_acidentes`/`dim_tempo`/`dim_local`/`dim_classificacao_acidente` +
+   `cluster_municipio`/`regra_associacao` (painel operacional), e mais 11
+   sobre o schema `metadados` (dicionário de dados, ver abaixo).
+4. Monta os dois dashboards, cada um com suas consultas já posicionadas numa
+   grade de 24 colunas, com cores aplicadas por card no painel operacional
+   (ver "Paleta de cores" abaixo).
+
+A conexão do Metabase com o banco `dw` tem `schema-filters-patterns:
+"public"` (só esse schema aparece no browser gráfico do Metabase), mas isso
+não impede consulta SQL nativa a outros schemas do mesmo banco - é só um
+filtro do que aparece na UI de navegação, não uma restrição de acesso. Por
+isso os cards do dashboard de Metadados, que consultam `metadados.*`
+diretamente por SQL, funcionam normalmente mesmo com esse filtro.
 
 **Importante ao editar `metabase/setup_dashboards.py`**: diferente de
 `airflow/dags` (bind mount, qualquer edição já reflete no container),
@@ -400,11 +451,13 @@ uma mudança no script depois de `docker compose build metabase-setup`.
 Reaplicar (depois de editar o script):
 
 ```bash
-docker compose build metabase-setup
-# apaga o dashboard atual + os cards (senão o setup só vê "dashboard já
-# existe" e não recria nada - idempotência por nome) via API do Metabase,
-# depois:
-docker compose rm -f metabase-setup && docker compose up -d metabase-setup
+docker compose -p dw_trabalho_apresentacao build metabase-setup
+# apaga o dashboard afetado (operacional, metadados, ou os dois) + os cards
+# dele via API do Metabase - senão main() só vê "dashboard já existe" e não
+# recria nada (idempotência por nome, por dashboard). Editou só um dos dois?
+# apaga só aquele.
+docker compose -p dw_trabalho_apresentacao rm -f metabase-setup
+docker compose -p dw_trabalho_apresentacao up -d metabase-setup
 ```
 
 O painel (pensando como analista da PRF, focado em onde/quando/por que
@@ -453,6 +506,34 @@ precisam da `ml_clusterizacao_regras_associacao`); antes disso os cards
 aparecem vazios/com erro, e não precisam ser recriados depois, só recarregar
 a página.
 
+### Dashboard: Metadados (dicionário de dados)
+
+Segundo dashboard, separado do operacional de propósito (público/finalidade
+diferente - documentação do sistema, não análise de acidentes). Consulta só
+o schema `metadados` (ver seção "Metadados" acima) - precisa do seed
+(`dw/metadados_seed_postgres.sql`) já carregado, senão os cards aparecem
+vazios. 11 cards:
+
+- **5 contadores** (tabelas/campos do DW, tabelas transacionais, algoritmos
+  de ETL, linhas de linhagem) - visão geral do tamanho do catálogo.
+- **Linhagem: de onde vem cada campo do DW** - o centro do dicionário, 72
+  linhas. Pra cada campo do DW: de qual tabela/campo ele vem (transacional,
+  outro campo do DW - ex. corporativo → data mart -, ou um dado externo tipo
+  calendário gerado) e por qual algoritmo de ETL (`metadados.algoritmo_etl`),
+  ou "cópia direta" quando não há transformação. Origem é sempre UMA das três
+  (nunca mais de uma preenchida - `CHECK` em
+  `metadados.integracao_transacional_dw`).
+- **Algoritmos de ETL Usados** - nome, descrição e referência de código de
+  cada algoritmo (ex. "Pivot de contagem de vítimas por categoria" →
+  `common_etl.py:carregar_marting_fato_acidentes`).
+- **Tabelas do DW por Assunto** / **Tabelas do Sistema Transacional** -
+  listagem com grão, periodicidade de carga, descrição.
+- **Campos do DW** / **Campos do Sistema Transacional** - listagem completa
+  com papel (PK/FK/Atributo), tipo, tamanho.
+
+Todos os cards são SQL nativo direto sobre `metadados.*` (ver nota acima
+sobre o schema-filter da conexão não bloquear isso).
+
 ### Paleta de cores
 
 Tema "problemática de acidentes" (abre com vermelho), validado com a skill de
@@ -496,7 +577,9 @@ fixo, depende da ordem de criação dentro do Metabase (que já vem com um
 banco de exemplo pré-carregado).
 
 Rodar de novo (`docker compose up metabase-setup`, ou implícito no
-`start.sh`) é idempotente: se o dashboard já existe, o script não faz nada.
+`start.sh`) é idempotente por dashboard: `main()` confere os dois
+("Painel PRF..." e "Metadados...") de forma independente e só (re)cria o que
+estiver faltando - não apaga nem duplica o que já existe.
 
 ## Machine Learning — clusterização + regras de associação, `ml/`
 
