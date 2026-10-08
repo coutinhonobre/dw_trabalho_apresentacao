@@ -18,9 +18,15 @@ As três primeiras vivem no mesmo servidor Postgres (`docker-compose.yml`); a
 carga do transacional para o DW é feita por duas DAGs do Airflow
 (`airflow/dags/`).
 
+Todo o projeto vive dentro de `app/` (único diretório na raiz do
+repositório, além do `.git`) - os comandos abaixo (`./start.sh`, `docker
+compose ...`, `python3 scripts/...`) assumem que você está com `app/` como
+diretório de trabalho (`cd app` primeiro).
+
 ## Estrutura
 
 ```
+app/                           (tudo abaixo fica dentro de app/)
 dataset/
   datatran2007.csv ... datatran2026.csv   dataset original (PRF, 1 linha = 1 ocorrência, 1 CSV por ano)
 db/
@@ -63,6 +69,7 @@ start.sh                      recria tudo do zero (schema + dados)
 ## Subindo o ambiente
 
 ```bash
+cd app
 ./start.sh
 ```
 
