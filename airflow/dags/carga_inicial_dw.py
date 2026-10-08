@@ -354,6 +354,15 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     catchup=False,
     is_paused_upon_creation=False,  # disparado por bootstrap_carga_e_ml, que falha se este DAG estiver pausado
+    # Essencial: carregar_corporativo_ocorrencias faz DELETE + reinsert
+    # completo em corporativo.ocorrencias - duas runs concorrentes brigam
+    # pela mesma tabela (uma faz DELETE enquanto a outra está no meio do
+    # insert) e as duas falham. Visto ao vivo: bootstrap_carga_e_ml retentou
+    # a task de trigger (disparar_carga_inicial_dw) sem esperar a run
+    # anterior terminar de verdade, empilhando 3 runs simultâneas. Com
+    # max_active_runs=1, uma segunda tentativa de disparo fica NA FILA em vez
+    # de rodar em paralelo e corromper a carga.
+    max_active_runs=1,
     tags=["dw", "etl", "carga-inicial"],
 ) as dag:
 

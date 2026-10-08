@@ -270,6 +270,33 @@ aumenta `AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT` para 3600s
 banco não tem ponto natural pra heartbeat, e o padrão mata a task achando que
 travou antes dela terminar numa máquina mais carregada.
 
+**Dois problemas de infraestrutura do Airflow 3.x achados rodando a carga
+completa (não são bugs do código de carga em si), os dois já corrigidos:**
+
+1. **JWT do heartbeat expira antes da task terminar.** No Airflow 3.x a task
+   autentica os próprios heartbeats contra o api-server via um JWT de vida
+   curta (`[execution_api] jwt_expiration_time`, default 600s = 10min). A
+   reemissão automática desse token ("JWT reissue middleware") não se mostrou
+   confiável aqui - quando falha, os heartbeats passam a ser rejeitados com
+   403 ("Signature has expired"), e depois de 3 falhas seguidas o supervisor
+   do Airflow **mata a task** (SIGTERM depois SIGKILL) achando que ela
+   travou, mesmo ela viva e progredindo normal - sem nenhum erro no log da
+   própria task (o motivo só aparece no log do scheduler, não no log da
+   task). `AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT` (acima)
+   **não resolve isso sozinho** - é uma config diferente (timeout de
+   detecção de travamento, não de autenticação do heartbeat em si). Corrigido
+   com `AIRFLOW__EXECUTION_API__JWT_EXPIRATION_TIME: "3600"` no
+   `docker-compose.yml`.
+2. **Runs concorrentes corrompendo a carga.** Nenhuma das duas DAGs de carga
+   tinha `max_active_runs` definido. Combinado com o problema 1 (uma task
+   "morta" sem erro visível leva quem está esperando - ex. a DAG de bootstrap,
+   ver seção abaixo - a retentar o disparo), isso permitiu DUAS runs de
+   `carga_inicial_dw` rodando ao mesmo tempo, uma fazendo `DELETE` em
+   `corporativo.ocorrencias` enquanto a outra estava no meio do insert - as
+   duas falham. Corrigido com `max_active_runs=1` nas duas DAGs
+   (`carga_inicial_dw`/`carga_incremental_dw`): uma segunda tentativa de
+   disparo agora fica na fila em vez de rodar em paralelo.
+
 ## Airflow — carga incremental
 
 DAG `carga_incremental_dw`. O corte de "o que é novo" é pelo maior

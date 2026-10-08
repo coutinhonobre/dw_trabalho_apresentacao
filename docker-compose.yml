@@ -76,6 +76,19 @@ services:
       # de 20 min. 1h dá margem de sobra sem mascarar uma trava de verdade
       # (task genuinamente travada nunca reporta success de qualquer jeito).
       AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT: "3600"
+      # O heartbeat timeout acima não basta sozinho: no Airflow 3.x a task
+      # autentica seus heartbeats contra o api-server via um JWT de vida
+      # curta ([execution_api] jwt_expiration_time, default 600s = 10min). A
+      # reemissão automática desse token ("JWT reissue middleware") não está
+      # confiável aqui - quando falha, os heartbeats passam a ser rejeitados
+      # com 403 ("Signature has expired") depois dos 10min, e depois de 3
+      # falhas seguidas o supervisor do Airflow MATA a task (SIGTERM depois
+      # SIGKILL) achando que ela travou - mesmo ela viva e progredindo normal
+      # (visto ao vivo: carregar_corporativo_ocorrencias morta aos ~30min,
+      # sem nenhum erro no log da própria task - o motivo só aparece no log
+      # do scheduler). 1h de validade cobre a carga completa (~1h pros 2,2M
+      # de linhas, ver README).
+      AIRFLOW__EXECUTION_API__JWT_EXPIRATION_TIME: "3600"
     ports:
       - "8080:8080"
     volumes:

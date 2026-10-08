@@ -356,6 +356,12 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     catchup=False,
     is_paused_upon_creation=False,  # consistente com carga_inicial_dw - disparo manual, mas sem passo extra de unpause
+    # Mesmo motivo de carga_inicial_dw: staging é TRUNCATE + reinsert e
+    # corporativo.ocorrencias é append-only por watermark - duas runs
+    # concorrentes podem truncar a staging uma da outra no meio, ou duplicar
+    # o mesmo delta (ambas leem o mesmo watermark antes de qualquer uma
+    # commitar). max_active_runs=1 enfileira em vez de rodar em paralelo.
+    max_active_runs=1,
     tags=["dw", "etl", "carga-incremental"],
 ) as dag:
 
