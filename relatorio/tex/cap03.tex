@@ -1,0 +1,87 @@
+
+\chapter{Metodologia: Ensemble de Clusterização e Regras de Associação}
+\label{cap:metodologia}
+
+O pipeline (\texttt{ml/clusterizacao\_regras\_associacao.py}) roda em duas
+etapas sobre o Data Mart (\autoref{sec:datamart}): primeiro clusteriza os
+municípios, depois descobre regras de associação \textbf{dentro} de cada
+cluster, separadamente.
+
+\section{Etapa 1: Clusterização dos municípios}
+\label{sec:clusterizacao}
+
+Cada município com volume mínimo de ocorrências ganha um \textbf{perfil de
+risco}, agregado de \texttt{fato\_acidentes} + \texttt{dim\_local} +
+\texttt{dim\_classificacao\_acidente}, com nove \textit{features}: volume
+(em log), taxa de letalidade, taxa de feridos graves, veículos médios,
+proporções de fim de semana/noite/chuva/pista simples, e concentração da
+causa principal. As \textit{features} são padronizadas
+(\texttt{StandardScaler}) antes do agrupamento, para que nenhuma domine a
+distância euclidiana só por estar numa escala maior.
+
+O agrupamento usa \textbf{KMeans} \cite{macqueen1967} (\texttt{scikit-learn}
+\cite{pedregosa2011}), com $k$ escolhido automaticamente: o pipeline testa
+$k$ de 2 a 8 e mantém o valor com o maior \textit{silhouette score}
+\cite{rousseeuw1987}, que compara, para cada município, a distância média
+ao próprio cluster com a distância média ao cluster vizinho mais próximo,
+sem depender de rótulo verdadeiro. O \autoref{code:clusterizacao} reproduz o
+núcleo dessa escolha, de \texttt{escolher\_k\_e\_clusterizar()}; o modelo
+final é reajustado com o $k$ escolhido.
+
+\begin{center}
+  \begin{codigo}[H]
+    \small
+    \lstinputlisting[language=Python, firstline=216, lastline=227]{../app/ml/clusterizacao_regras_associacao.py}
+    \caption{Escolha de $k$ por silhueta}
+    \label{code:clusterizacao}
+  \end{codigo}
+\end{center}
+
+\section{Etapa 2: Regras de associação por cluster}
+\label{sec:regras}
+
+As ocorrências de cada cluster viram \textit{cestas}: até 9 itens por
+ocorrência, um por classificação (\texttt{causa=...},
+\texttt{tipo\_acidente=...}, \texttt{clima=...}, \texttt{tipo\_pista=...}
+etc.); valores não informativos são descartados da cesta. Sobre as cestas de
+cada cluster roda o \textbf{Apriori} \cite{agrawal1994} (\texttt{mlxtend}
+\cite{raschka2018}), que encontra os itemsets frequentes e as regras
+antecedente~$\rightarrow$~consequente, filtradas e ordenadas por três
+métricas: \textbf{suporte} (frequência conjunta), \textbf{confiança}
+($P(\text{consequente} \mid \text{antecedente})$) e \textbf{\textit{lift}}
+(razão entre confiança observada e esperada sob independência;
+$\textit{lift}>1$ indica associação positiva).
+
+O \autoref{code:regras} reproduz o núcleo dessa etapa: cada cluster vira uma
+matriz \textit{one-hot} de cestas, alimenta o Apriori e, por fim, as regras.
+
+\begin{center}
+  \begin{codigo}[H]
+    \small
+    \lstinputlisting[language=Python, linerange={307-309,318-324}]{../app/ml/clusterizacao_regras_associacao.py}
+    \caption{Apriori e regras de associação, por cluster}
+    \label{code:regras}
+  \end{codigo}
+\end{center}
+
+O \autoref{code:clusterizacao} e o \autoref{code:regras} são excertos; o
+código completo está em \texttt{app/ml/clusterizacao\_regras\_associacao.py}.
+Como o \textit{lift} é simétrico, o pipeline mantém só a direção de maior
+confiança de cada par.
+
+Parâmetros desta execução: ano de 2024 (um ano por vez, pois os 20 anos
+juntos excedem a memória do Apriori por cluster), mínimo de 30 ocorrências
+por município, $k$ entre 2 e 8, suporte mínimo 0,05, \textit{lift} mínimo
+1,1, confiança mínima 0,30, itemsets de no máximo 2 itens (regras de 1
+antecedente para 1 consequente, evitando \textit{supersets} redundantes do
+mesmo par) e as 15 regras de maior \textit{lift} mantidas por cluster.
+
+\section{Persistência e disponibilização para o BI}
+\label{sec:persistencia}
+
+Os resultados são gravados no próprio Data Mart, nas tabelas
+\texttt{cluster\_municipio} e \texttt{regra\_associacao}
+(\autoref{fig:dw-estrela}), e em CSV/PNG em \texttt{ml/output/}. O pipeline
+roda pela \sigla{DAG}{Directed Acyclic Graph}
+\texttt{ml\_clusterizacao\_regras\_associacao} do Airflow, logo após a carga
+inicial do DW.

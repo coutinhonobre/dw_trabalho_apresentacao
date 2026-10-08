@@ -57,7 +57,7 @@ from sklearn.preprocessing import StandardScaler
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# Paleta categórica/sequencial de referência (ver skill dataviz do projeto):
+# Paleta categórica/sequencial de referência:
 # slot 1 azul / slot 2 laranja para séries categóricas, rampa azul clara->escura
 # pra magnitude (sequencial), em vez da colormap default do matplotlib.
 COR_SERIE_1 = "#2a78d6"

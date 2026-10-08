@@ -1,0 +1,14 @@
+
+\chapter{Conclusão}
+\label{cap:conclusao}
+
+O \textit{ensemble} pedido foi aplicado sobre o Data Mart construído para
+esta atividade, com município no papel de cliente e classificações da
+ocorrência no papel de produto: KMeans ($k=2$ pela silhueta) para segmentar,
+depois Apriori dentro de cada segmento.
+
+O resultado foram dois perfis de município distintos e regras próprias de
+cada um, que se perderiam rodando o Apriori uma única vez sobre a base
+inteira. Como limitação, a execução cobriu apenas 2024 (restrição de memória
+do Apriori com os 20 anos); o mesmo pipeline pode rodar para outros anos e
+comparar a estabilidade de clusters e regras no tempo.

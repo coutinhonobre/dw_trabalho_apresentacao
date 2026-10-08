@@ -536,9 +536,8 @@ sobre o schema-filter da conexão não bloquear isso).
 
 ### Paleta de cores
 
-Tema "problemática de acidentes" (abre com vermelho), validado com a skill de
-dataviz do projeto (CVD/contraste/lightness-band, não só "achei bonito" -
-`node scripts/validate_palette.js` dessa skill). OSS Metabase **não** deixa
+Tema "problemática de acidentes" (abre com vermelho), escolhido checando
+daltonismo (CVD), contraste e faixa de luminosidade, não só "achei bonito". OSS Metabase **não** deixa
 recolorir globalmente - `application-colors` é feature paga ("whitelabel"; a
 API recusa com "recurso :whitelabel não está disponível" na versão grátis).
 Por isso as cores são aplicadas por card:
@@ -552,7 +551,7 @@ Por isso as cores são aplicadas por card:
 - **Barra agrupada** (`perfil_risco_cluster`, com `rotulo` como 2a dimensão/
   série) — mesmo `series_settings`, mas chaveado pelo *valor* do rótulo
   ("Maior Letalidade" → vermelho, "Menor Letalidade" → azul - o par
-  diverging validado pela skill, polos quente/frio que leem como opostos,
+  divergente escolhido, polos quente/frio que leem como opostos,
   em vez do clássico vermelho/verde, ruim pra daltonismo; faz sentido aqui
   porque os rótulos são de fato uma polaridade de risco, não categorias
   arbitrárias).
@@ -561,7 +560,7 @@ Por isso as cores são aplicadas por card:
   erro mas o renderer não lê; a chave certa foi confirmada lendo o bundle
   `map-renderer.js` de dentro do próprio `metabase.jar`, já que não aparece
   documentada em lugar nenhum). Rampa vermelha clara→escura (menos→mais
-  óbitos) - validada como *sequencial* pela skill (monotonicidade de
+  óbitos) - conferida como *sequencial* (monotonicidade de
   luminosidade + mesma matiz; o degrau mais claro quase sumir no branco é
   esperado aqui, representa "zero óbitos" - diferente de uma rampa ordinal,
   que exigiria contraste mínimo até no degrau mais claro).
@@ -655,6 +654,28 @@ itemsets grandes viram texto longo demais pra uma tabela de dashboard. Regras
 espelhadas (A->C e C->A, que sempre têm o mesmo lift - a fórmula é simétrica)
 também são descartadas automaticamente, mantendo só a direção de maior
 confiança de cada par.
+
+**Sobre o *lift* (origem da métrica)**: o algoritmo Apriori (Agrawal &
+Srikant, 1994, citado no relatório) trabalha só com **suporte** e
+**confiança**. O *lift*, usado aqui para ordenar as regras, não vem desse
+artigo. Ele é
+`lift(A -> C) = suporte(A ∪ C) / (suporte(A) * suporte(C))`, ou seja, a
+confiança observada dividida pela confiança esperada se A e C fossem
+independentes (`lift > 1`: associação positiva; `= 1`: independência;
+`< 1`: associação negativa). A métrica aparece com o nome *interest* em:
+
+- BRIN, S.; MOTWANI, R.; ULLMAN, J. D.; TSUR, S. *Dynamic itemset counting
+  and implication rules for market basket data*. In: SIGMOD 1997, Tucson,
+  p. 255–264. É a atribuição usada pela documentação do pacote R `arules`
+  (Hahsler). O mesmo artigo introduz a medida *conviction*.
+- Artigo irmão do mesmo SIGMOD 1997, sobre medidas de correlação entre
+  itens: BRIN, S.; MOTWANI, R.; SILVERSTEIN, C. *Beyond market baskets:
+  generalizing association rules to correlations*. p. 265–276.
+
+Por isso o relatório cita Agrawal & Srikant só para o Apriori, sem atribuir
+o *lift* a eles. Se for preciso citar a origem do *lift*, a referência é
+Brin et al. (1997). No `mlxtend`, o *lift* é calculado em
+`association_rules(..., metric="lift")`.
 
 A implementação do `apriori()` (`mlxtend`) usa `low_memory=True`: o caminho
 padrão da lib monta um array denso 3D (linhas x combinações x tamanho do

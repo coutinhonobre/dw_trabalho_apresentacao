@@ -1,0 +1,165 @@
+\immediate\write18{makeindex -s nomencl.ist -o "\jobname.nls" "\jobname.nlo"}
+
+% Exemplo de documento do PPGTGS com texto em português formatado com LaTeX
+\documentclass[relatorio]{formatacao/classe-ifg}
+% Opções da classe-ifg (ao usar mais de uma, separe por vírgulas): 
+%   [tese]  	              	-> Tese de doutorado.
+%   [dissertacao]     	-> Dissertação de mestrado (padrão).
+%   [monografia]     	-> Monografia de especialização.
+%   [tcc]   	              	-> Trabalho de conclusão de curso (graduação).
+%   [qualificacaom]  	-> Qualificação de mestrado.
+%   [qualificacaoe]   	-> Qualificação de especialização.
+%   [qualificacaot]   	-> Qualificação de TCC.
+%   [preprojetom]   	-> Pré-projeto de mestrado.
+%   [preprojetoe]    	-> Pré-projeto de especialização.
+%   [preprojetot]    	-> Pré-projeto de TCC.
+%   [relatorio]    		-> Relatório de disciplina.
+ 
+% Caso precise, corrija hifenização aqui
+\hyphenation{mo-no-gra-fi-a pro-ces-so}
+\usepackage[section]{placeins}
+
+%INICIO DO DOCUMENTO ---------------------------------------------- %
+\begin{document}
+
+
+
+% EDITAR - Todos os cursos  ------------------------------------------- %
+% -------- Autor(es)
+\autor{Igor Coutinho Ferreira Nobre}
+% Se houver segundo autor descomente e preencha o comando abaixo
+%\sautor{Fulano de Tal} % (Ex.: José da Silva)
+% Se houver terceiro autor descomente e preencha o comando abaixo
+%\tautor{Fulano de Tal} % (Ex.: José da Silva)
+% -------- Título e subtitulo
+\titulo{Ensemble de Clusterização e Regras de Associação}
+\subtitulo{Segmentação de municípios e descoberta de padrões de acidentes por cluster, sobre o Data Mart PRF-DATATRAN}
+% -------- Curso
+% Bacharelado, Licenciatura, Curso Superior de Tecnologia, Mestrado Profissional
+\tipocurso{Especialização}
+\curso{Inteligência Artificial Aplicada}
+% Inserir apenas no caso de relatório de disciplina
+\disciplina{Tópicos Avançados em Inteligência Artificial I}
+% -------- Local e data
+\campus{Goiânia} % Câmpus em foi desenvolvido o trabalho
+\dia{07} % Data da apresentação/defesa do trabalho
+\mes{10} % Formato numérico: \dia{01}, \mes{01} e \ano{2007}
+\ano{2026} %
+% -------- Orientador(a)
+\orientador{Dr. Sirlon Diniz de Carvalho}
+% Unidade do(a) orientador(a) dentro da instituição. No caso de haver
+% mais de um departamento inclua o departamento, a sigla da 
+% instituição e o câmpus, como no modelo. Em câmpus com um único 
+% departamento inclua somente a sigla da instituição e o câmpus.
+\unidade{Especialização em Inteligência Artificial Aplicada - IFG / Câmpus Goiânia}
+% Use o comandos a seguir se for Orientadora e não Orientador.
+% Neste caso comente o comando acima inserindo % no início
+%\orientadora{\textless Nome da Orientadora\textgreater}
+% -------- Primeiro(a) coorientador(a)
+%\pcoorientador{Dr. Fulano de Tal}
+%\unidadepco{Departamento IV - IFG / Câmpus Goiânia}
+% -------- Segundo(a) coorientador(a)
+%\scoorientador{Dr. Fulano de Tal}
+%\unidadesco{Departamento IV - IFG / Câmpus Goiânia}
+
+
+
+% EDITAR - Apenas mestrado  --------------------------------------- %
+%\programa{Programa de Pós-Graduação \textit{Stricto Sensu} em Tecnologia, Gestão e Sustentabilidade}
+%\concentracao{Tecnologia de Sistemas de Produção Limpa}
+%\linha{Energias Renováveis}
+
+
+
+% NÃO EDITAR. Se necessário edite apenas os arquivos na pasta "pre" %
+\capa
+% Inclui o termo de autorização para disponibilização no repositório digital do IFG. 
+% O arquivo editável para gerar o termo pode ser obtido em https://www.ifg.edu.br/attachments/article/132/termo_autorizacao_rd_ifg.doc
+\termo
+\rosto % Primeira folha interna do trabalho
+\ficha
+\aprovacao
+\cdedicatoria
+\cagradecimentos
+\cepigrafe
+\cresumo
+\cabstract
+
+\renewcommand{\cresumopre}{}
+
+% EDITAR - Todos os cursos  --------------------------------------- %
+% Define os índices a serem gerados. Coloque a opção de acordo com o
+% texto. Índices incluídos sem nenhum caso no texto serão
+% apresentados vazios
+\tabelas[fig,tab,qua]
+\clearpage
+\normalfont\pagestyle{fancy}
+\onehalfspacing
+%Opções:
+% nada [] -> Gera apenas o sumário
+% fig     -> Gera o sumário e a lista de figuras
+% tab     -> Sumário e lista de tabelas
+% qua     -> Sumário e lista de quadros
+% alg     -> Sumário e lista de algoritmos
+% cod     -> Sumário e lista de códigos de programas
+% sig     -> Sumário e lista de abreviaturas e siglas
+% sim     -> Sumário e lista de símbolos
+%
+% Pode-se usar qualquer combinação dessas opções.
+% Por exemplo:
+%  fig,tab                              	-> Sumário e listas de figuras e 
+%                                                   tabelas
+%  fig,tab,qua                        	-> Sumário e listas de figuras, 
+%                                                   tabelas e quadros
+%  fig,tab,qua,alg                   	-> Sumário e listas de figuras, 
+%                                                  tabelas, quadros e algoritmos
+%  fig,tab,qua,alg,cod             	-> Sumário e listas de figuras, 
+%                                                  quadros, algoritmos e códigos de 
+%                                                  programas
+%  fig,tab,qua,alg,cod,sig        	-> Sumário e listas de figuras, 
+%                                                   tabelas, quadros, algoritmos, 
+%                                                   códigos de programas e 
+%                                                   abreviaturas e siglas
+%  fig,tab,qua,alg,cod,sig,sim   -> Sumário e listas de figuras, 
+%                                                   tabelas, quadros, algoritmos, 
+%                                                   códigos de programas e 
+%                                                   abreviaturas, siglas e símbolos
+
+
+
+\newcommand{\codigoautorefname}{Código}
+
+% EDITAR - Todos os cursos --------------------------------------- %
+% Arquivos com o texto do documento. Para facilitar a organização é
+% recomendado criar um arquivo para cada capítulo. O nome do arquivo
+% pode ser qualquer um, desde que contenha apenas letras e números.
+% Certifique-se de que os nomes coincidem com o que foi incluído
+\input{./tex/cap01}
+\input{./tex/cap02}
+\input{./tex/cap03}
+\input{./tex/cap04}
+\input{./tex/cap05}
+
+
+
+% NÃO EDITAR ------------------------------------------------------ %
+\bibliografia
+
+
+
+% EDITAR - Todos os cursos ---------------------------------------- %
+% Use o trecho abaixo para inserir apêndices e anexos usando o
+% comando input da mesma forma que para capítulos. NÃO edite nem 
+% altere a ordem dos comandos \apendices e \anexos. 
+% Se não houver apêndice e anexo remova os comandos input 
+% equivalentes
+% ---- Apêndices
+%\apendices
+%\input{./apendices/apendI}
+% ---- Anexos
+
+\end{document}
+
+%------------------------------------------------------------------ %
+%         F I M   D O  A R Q U I V O :  modelo-ifg.tex         %
+%------------------------------------------------------------------ %

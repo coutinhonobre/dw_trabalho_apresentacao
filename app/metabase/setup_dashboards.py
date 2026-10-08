@@ -108,10 +108,8 @@ cluster_rotulo AS (
 # ----------------------------------------------------------------
 
 # Paleta do painel (tema "problemática de acidentes" - abre com vermelho),
-# validada com a skill de dataviz (rotação do palette default pra abrir em
-# vermelho mantendo os 7 pares adjacentes já validados + 1 par novo
-# vermelho-azul, checado à parte - CVD/contraste/normal-vision todos PASS
-# nos dois modos, ver histórico do projeto). OSS Metabase não deixa recolorir
+# rotação do palette default pra abrir em vermelho, mantendo os pares
+# adjacentes distinguíveis (daltonismo/contraste conferidos). OSS Metabase não deixa recolorir
 # globalmente (`application-colors` é feature paga "whitelabel" - testado,
 # API recusa: "recurso :whitelabel não está disponível"), então aplicado por
 # card via `series_settings`, que funciona na versão grátis.
@@ -134,7 +132,7 @@ def cor_serie(nome_coluna, cor):
 
 
 # Cores por rótulo de cluster_rotulo (ROTULO_CLUSTER_CTE acima) - vermelho/
-# azul é o par diverging validado pela skill de dataviz (polos quente/frio
+# azul é um par divergente (polos quente/frio
 # que leem como opostos, em vez do clássico vermelho/verde, ruim pra
 # daltonismo) - aqui faz sentido de verdade porque os rótulos SÃO uma
 # polaridade (mais x menos letal), não categorias arbitrárias.
@@ -386,8 +384,8 @@ def build_cards(mb: MB, database_id: int, collection_id: int) -> dict:
             # chave certa é "map.colors" (array), não "color" (singular, que
             # a API aceita sem erro mas o renderer não lê - confirmado lendo
             # o bundle map-renderer.js do próprio Metabase, já que esse
-            # setting não aparece documentado em lugar nenhum). Validado como
-            # rampa sequencial pela skill de dataviz (monotonicidade de
+            # setting não aparece documentado em lugar nenhum). Rampa
+            # sequencial (monotonicidade de
             # luminosidade + mesma matiz) - o degrau mais claro quase sumir
             # no branco é esperado aqui (zero óbitos), diferente de uma
             # rampa ordinal.
