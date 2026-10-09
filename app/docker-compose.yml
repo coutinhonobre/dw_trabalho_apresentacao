@@ -1,0 +1,123 @@
+services:
+
+  # ============================================================
+  # ETAPA 1 — Banco transacional (OLTP) + Data Warehouse
+  # ============================================================
+
+  # `datatran` (OLTP) e `dw` (corporativo + data_marting + metadados) vivem
+  # no mesmo servidor Postgres, em bancos separados - `dw_postgres.sql`
+  # começa com `CREATE DATABASE dw; \c dw;`, então a ordem dos scripts
+  # importa (numeração abaixo).
+  postgres:
+    image: postgres:16
+    container_name: datatran_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: datatran
+    ports:
+      - "5432:5432"
+    # 02-*: um arquivo por ano (gerado por scripts/gerar_inserts.py, ver
+    # cabeçalho do script) - 02-00-catalogos.sql (uf/município/local_acidente/
+    # etc., compartilhados entre anos) tem que vir antes de qualquer
+    # 02-NN-AAAA.sql; a ordem entre os anos em si não importa (cada um só
+    # referencia os catálogos, nunca outro ano).
+    volumes:
+      - "./db/01_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro"
+      - "./db/02-00-catalogos.sql:/docker-entrypoint-initdb.d/02-00-catalogos.sql:ro"
+      - "./db/02-01-2007.sql:/docker-entrypoint-initdb.d/02-01-2007.sql:ro"
+      - "./db/02-02-2008.sql:/docker-entrypoint-initdb.d/02-02-2008.sql:ro"
+      - "./db/02-03-2009.sql:/docker-entrypoint-initdb.d/02-03-2009.sql:ro"
+      - "./db/02-04-2010.sql:/docker-entrypoint-initdb.d/02-04-2010.sql:ro"
+      - "./db/02-05-2011.sql:/docker-entrypoint-initdb.d/02-05-2011.sql:ro"
+      - "./db/02-06-2012.sql:/docker-entrypoint-initdb.d/02-06-2012.sql:ro"
+      - "./db/02-07-2013.sql:/docker-entrypoint-initdb.d/02-07-2013.sql:ro"
+      - "./db/02-08-2014.sql:/docker-entrypoint-initdb.d/02-08-2014.sql:ro"
+      - "./db/02-09-2015.sql:/docker-entrypoint-initdb.d/02-09-2015.sql:ro"
+      - "./db/02-10-2016.sql:/docker-entrypoint-initdb.d/02-10-2016.sql:ro"
+      - "./db/02-11-2017.sql:/docker-entrypoint-initdb.d/02-11-2017.sql:ro"
+      - "./db/02-12-2018.sql:/docker-entrypoint-initdb.d/02-12-2018.sql:ro"
+      - "./db/02-13-2019.sql:/docker-entrypoint-initdb.d/02-13-2019.sql:ro"
+      - "./db/02-14-2020.sql:/docker-entrypoint-initdb.d/02-14-2020.sql:ro"
+      - "./db/02-15-2021.sql:/docker-entrypoint-initdb.d/02-15-2021.sql:ro"
+      - "./db/02-16-2022.sql:/docker-entrypoint-initdb.d/02-16-2022.sql:ro"
+      - "./db/02-17-2023.sql:/docker-entrypoint-initdb.d/02-17-2023.sql:ro"
+      - "./db/02-18-2024.sql:/docker-entrypoint-initdb.d/02-18-2024.sql:ro"
+      - "./db/02-19-2025.sql:/docker-entrypoint-initdb.d/02-19-2025.sql:ro"
+      - "./db/02-20-2026.sql:/docker-entrypoint-initdb.d/02-20-2026.sql:ro"
+      - "./dw/dw_postgres.sql:/docker-entrypoint-initdb.d/03-dw-schema.sql:ro"
+      - "./dw/metadados_postgres.sql:/docker-entrypoint-initdb.d/04-metadados.sql:ro"
+      - "./dw/staging_postgres.sql:/docker-entrypoint-initdb.d/05-staging.sql:ro"
+      - "./data_marting/dw_postgres.sql:/docker-entrypoint-initdb.d/06-data-marting.sql:ro"
+
+  # ============================================================
+  # ETAPA 2 — Orquestração de ETL (Airflow)
+  # ============================================================
+
+  # Instância standalone (webserver + scheduler em um único processo,
+  # metadados do próprio Airflow em SQLite). Roda as DAGs carga_inicial_dw e
+  # carga_incremental_dw, que leem do `datatran` e populam `dw`.
+  airflow:
+    image: apache/airflow:latest
+    container_name: dw_airflow
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "airflow:admin"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: "/opt/airflow/simple_auth_manager_passwords.json"
+      # psycopg2-binary: DAGs de carga (common_etl.py). As demais: DAG
+      # ml_clusterizacao_regras_associacao, que importa ml/clusterizacao_regras_associacao.py.
+      _PIP_ADDITIONAL_REQUIREMENTS: "psycopg2-binary pandas scikit-learn mlxtend matplotlib"
+      # carregar_corporativo_ocorrencias processa ~127 mil linhas num loop
+      # Python síncrono só com round-trips de banco, sem ponto natural pra
+      # heartbeat - o default de 300s (5 min) é curto demais pra essa carga.
+      # Em máquina ociosa leva 5-8 min; sob memória apertada já vimos passar
+      # de 20 min. 1h dá margem de sobra sem mascarar uma trava de verdade
+      # (task genuinamente travada nunca reporta success de qualquer jeito).
+      AIRFLOW__SCHEDULER__TASK_INSTANCE_HEARTBEAT_TIMEOUT: "3600"
+      # O heartbeat timeout acima não basta sozinho: no Airflow 3.x a task
+      # autentica seus heartbeats contra o api-server via um JWT de vida
+      # curta ([execution_api] jwt_expiration_time, default 600s = 10min). A
+      # reemissão automática desse token ("JWT reissue middleware") não está
+      # confiável aqui - quando falha, os heartbeats passam a ser rejeitados
+      # com 403 ("Signature has expired") depois dos 10min, e depois de 3
+      # falhas seguidas o supervisor do Airflow MATA a task (SIGTERM depois
+      # SIGKILL) achando que ela travou - mesmo ela viva e progredindo normal
+      # (visto ao vivo: carregar_corporativo_ocorrencias morta aos ~30min,
+      # sem nenhum erro no log da própria task - o motivo só aparece no log
+      # do scheduler). 1h de validade cobre a carga completa (~1h pros 2,2M
+      # de linhas, ver README).
+      AIRFLOW__EXECUTION_API__JWT_EXPIRATION_TIME: "3600"
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./airflow/dags:/opt/airflow/dags"
+      - "./airflow/simple_auth_manager_passwords.json:/opt/airflow/simple_auth_manager_passwords.json"
+      - "./ml:/opt/airflow/dags/ml"
+    command: standalone
+
+  # ============================================================
+  # ETAPA 3 — BI (Metabase), painéis sobre o data mart em estrela
+  # ============================================================
+
+  # Metadados do próprio Metabase ficam em H2 embarcado (arquivo dentro do
+  # container, não precisa de outro Postgres). Conecta no banco `dw` (schema
+  # `public`, o data mart) como fonte de dados de BI.
+  metabase:
+    image: metabase/metabase:latest
+    container_name: dw_metabase
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+  # Provisiona o Metabase via API (usuário admin, conexão com o `dw`, mapa
+  # customizado dos estados do Brasil e o dashboard "Painel PRF") assim que o
+  # serviço acima sobe. Roda uma vez e sai (não é um serviço de vida longa).
+  metabase-setup:
+    build: ./metabase
+    container_name: dw_metabase_setup
+    depends_on:
+      - metabase
+      - postgres

@@ -1,0 +1,84 @@
+
+\chapter{Introdução}
+\label{cap:intro}
+
+Este relatório documenta a atividade da disciplina Tópicos Avançados em
+Inteligência Artificial I, reproduzida a seguir na íntegra:
+
+\begin{citacao}
+\textbf{Ensamble \textit{(sic)}: clusterização de clientes com Regras de Associação}
+
+Combinar clusterização de clientes com Regras de Associação é uma estratégia
+extremamente poderosa para análises de CRM e marketing. A ideia central é
+simples: em vez de aplicar as regras de associação em toda a base de
+transações (o que pode gerar milhares de regras genéricas e pouco
+acionáveis), você segmenta os clientes primeiro e, em seguida, descobre
+padrões de compra específicos para cada grupo.
+
+Portanto, de posse do DW Organizacional ou Datamart construído para esse fim,
+povoar o BD e aplicar o conceito de ensemble (aprendizagem por conjuntos):
+
+1) Utilizar dados para clusterizar ou classificar os clientes
+
+2) De posse das compras por grupo/classe, aplicar as Regras de Descoberta de
+Associação entre produtos.
+
+Obs: Para o trabalho pode-se utilizar as ferramentas das bibliotecas Python.
+
+Entregáveis: Código e relatório técnico do processo.
+\end{citacao}
+
+O enunciado chama de \textit{ensemble} a combinação, em sequência, de duas
+técnicas não supervisionadas: segmentar os clientes antes de minerar regras
+de associação, em vez de minerar sobre toda a base de uma só vez. É um uso
+mais amplo do termo, que na literatura designa em geral a combinação das
+predições de vários modelos \cite{dietterich2000}.
+
+\section{Ambiente construído e adaptação do domínio}
+\label{sec:ambiente-dominio}
+
+Para esta atividade foi construído, do zero, um ambiente sobre os dados
+abertos de sinistros de trânsito da \sigla{PRF}{Polícia Rodoviária Federal}
+\cite{prfdatatran}: \sigla{DW}{Data Warehouse} Organizacional (Inmon
+\cite{inmon2005}), Data Mart em estrela (Kimball \cite{kimball2013}),
+\sigla{ETL}{Extract, Transform, Load} via Airflow e \sigla{BI}{Business
+Intelligence} via Metabase (\autoref{cap:ambiente}). Sobre o Data Mart
+povoado foi aplicado o \textit{ensemble} (\autoref{cap:metodologia}), com
+resultados no \autoref{cap:resultados}.
+
+O domínio de origem (acidentes de trânsito) não tem o conceito de
+\textit{cliente} comprando \textit{produtos}. Os dois conceitos foram
+adaptados ao domínio disponível, preservando a mesma estrutura do problema
+(segmentar, depois minerar regras por segmento):
+
+\begin{quadro}[!ht]
+  \centering
+  \small
+  \caption{Adaptação dos conceitos do enunciado ao domínio PRF-DATATRAN}
+  \label{qua:adaptacao}
+  \begin{tabular}{|p{2.6cm}|p{5.2cm}|p{6.2cm}|}
+    \hline
+    \textbf{Enunciado} & \textbf{Adaptado para} & \textbf{Justificativa} \\
+    \hline
+    Cliente &
+    Município (\texttt{nome\_municipio} + \texttt{sigla\_uf}) &
+    Unidade geográfica que concentra ocorrências ao longo do tempo; acumula
+    um \textit{perfil de risco} (letalidade, gravidade, volume, condições
+    predominantes), como um cliente acumula um perfil de compras \\
+    \hline
+    Produto (item da cesta de compra) &
+    Cada classificação de uma ocorrência (causa, tipo de acidente, condição
+    meteorológica, fase do dia, tipo de pista, traçado da via, uso do solo,
+    sentido da via, classificação quanto a vítimas) &
+    Uma ocorrência é tratada como uma \textit{cesta} com até 9 itens, um por
+    tipo de classificação \\
+    \hline
+  \end{tabular}
+  \fontequa{Elaborado pelo autor.}
+\end{quadro}
+
+Todo o trabalho (código-fonte e este relatório) está no repositório
+\url{https://github.com/coutinhonobre/dw_trabalho_apresentacao}
+\cite{repotrabalho}. O relatório usa o modelo \LaTeX\ oficial do IFG,
+\textsf{classe-ifg}, do Prof. Dr. Raphael de Aquino Gomes
+\cite{classeifg}.
