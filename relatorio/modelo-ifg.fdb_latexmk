@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex modelo-ifg"] 1791430899.15743 "modelo-ifg.aux" "modelo-ifg.bbl" "modelo-ifg" 1791431092.02777 0
+["bibtex modelo-ifg"] 1791512792.52757 "modelo-ifg.aux" "modelo-ifg.bbl" "modelo-ifg" 1791512805.42567 0
   "./bib/bibliografia.bib" 1791429550.11949 7422 ce8de72cd7d6d4ea4476aad5a09f3acd ""
   "./formatacao/abnt-alf.bst" 1791420679.00422 60769 869c104570470b28dd4b75c76fb2e034 ""
   "./formatacao/abnt-options.bib" 1791420679.00602 5396 4eb260dac60f150ae608d45252853090 ""
-  "modelo-ifg.aux" 1791431091.41587 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
+  "modelo-ifg.aux" 1791512804.964 11304 c2052a0983185d829e5b55b2a4c6a51a "pdflatex"
   (generated)
   "modelo-ifg.bbl"
   "modelo-ifg.blg"
   (rewritten before read)
-["pdflatex"] 1791431087.60675 "/Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex" "modelo-ifg.pdf" "modelo-ifg" 1791431092.02805 0
+["pdflatex"] 1791512802.23278 "/Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex" "modelo-ifg.pdf" "modelo-ifg" 1791512805.42584 0
   "../app/ml/clusterizacao_regras_associacao.py" 1791430882.66242 22186 bccbb67829084681a1acc165b6f43134 ""
   "/Users/coutinhonobre/Documents/PosIFG/dw_trabalho_apresentacao/relatorio/modelo-ifg.tex" 1791430865.49556 6995 53c9eb4a2e3f41694006597a20f0246e ""
   "/usr/local/texlive/2024/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc" 1254269338 2375 baa924870cfb487815765f9094cf3728 ""
@@ -344,7 +344,7 @@
   "/usr/local/texlive/2024/texmf.cnf" 1710266656 577 e590dabc9e28c5b61546e15f63eebcdf ""
   "fig/dashboard.pdf" 1791423986.08489 2771752 9ae6482e9e8943861373af6d3a2d3c4f ""
   "fig/dw_corporativo.png" 1791424443.44507 350674 e6bd874d1b70de123308327515c8b382 ""
-  "fig/dw_martings.png" 1791424443.45973 224263 bb607eb730945e5a26f144d5d432c5e0 ""
+  "fig/dw_martings.png" 1791512163.64927 714486 f4cdf66385d747a0defe166722ada335 ""
   "fig/dw_metadados.png" 1791424443.45084 250822 1baa92afd0ff4f72143fd630a2b25cc7 ""
   "fig/ml_silhouette_k.png" 1791423014.97524 49449 f64f93d4c8b0b964c24b444760275665 ""
   "fig/perfil_risco_cluster.png" 1791424668.34516 96745 3614f1ce6530ffd9dd460c4150375c69 ""
@@ -357,13 +357,13 @@
   "formatacao/nbr10520-2002.def" 1791420679.01183 755 58df08aa3b760838e032356fbd6e92c0 ""
   "formatacao/nbr10522-1988.def" 1791420679.01206 2041 054850181facb59392abdc01052d6588 ""
   "formatacao/tocloft.sty" 1791420679.01231 33755 df8a47a34e03da3c7f7a7443f3b38943 ""
-  "modelo-ifg.aux" 1791431091.41587 11308 b5fae061d002f9e9718e7245d3cf66d0 "pdflatex"
-  "modelo-ifg.bbl" 1791430899.27663 3847 344f6a8319bef14a98755dc89ba18b7b "bibtex modelo-ifg"
-  "modelo-ifg.brf" 1791431091.4185 626 7dd6c6a51346e18c557649e666a59942 "pdflatex"
-  "modelo-ifg.out" 1791431091.41831 3528 ab0fa56baad6fdcfd30b9932aa74e7a1 "pdflatex"
+  "modelo-ifg.aux" 1791512804.964 11304 c2052a0983185d829e5b55b2a4c6a51a "pdflatex"
+  "modelo-ifg.bbl" 1791512792.64731 3792 3abbd8fc65aafd38a79356fa11e993d4 "bibtex modelo-ifg"
+  "modelo-ifg.brf" 1791512804.96609 626 7c5ee27fe3d37679c89b89112b18293b "pdflatex"
+  "modelo-ifg.out" 1791512804.96595 3528 ab0fa56baad6fdcfd30b9932aa74e7a1 "pdflatex"
   "modelo-ifg.tex" 1791430865.49556 6995 53c9eb4a2e3f41694006597a20f0246e ""
-  "tex/cap01.tex" 1791430594.35128 3797 53a8e0872969ea1dd53784c4a7e20c9a ""
-  "tex/cap02.tex" 1791428712.89769 4413 e2056b0cd8f2cb67a8bfa08c3c6e9359 ""
+  "tex/cap01.tex" 1791512330.36025 3778 3b461fd3092ff75d9649f8893085d302 ""
+  "tex/cap02.tex" 1791512802.02656 4319 028c3a2851d2c7aa2238b41a2d4d7647 ""
   "tex/cap03.tex" 1791430594.35175 4206 18bdfba58a03237fe58a74234bf1d102 ""
   "tex/cap04.tex" 1791429153.08573 5949 4e468ff7bdb13095ececdb5dd865cb35 ""
   "tex/cap05.tex" 1791429153.08591 674 b0b21d926ac9a3193e7a684b2c651537 ""
